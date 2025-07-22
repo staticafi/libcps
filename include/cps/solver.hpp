@@ -73,6 +73,8 @@ struct Solver
     Solver(Setup const& setup_, Valuation const& seed_valuation_, Result const& seed_result_);
 
     Setup const& get_setup() const { return setup; }
+    Valuation const& get_seed_valuation() const { return seed_valuation; }
+    Result const& get_seed_result() const { return seed_result; }
 
     bool is_finished() const { return finished; }
     bool is_solution(Result const& result) const;
