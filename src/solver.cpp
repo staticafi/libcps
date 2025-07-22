@@ -39,7 +39,7 @@ void Solver::compute_next_valuation(Valuation& valuation)
 
 void Solver::process_result(Result const& result)
 {
-    finished = true; // TODO: This is incorrect temporary implementation.
+    finished = true; // TODO: This is incorrect temporary implementation!
 }
 
 
