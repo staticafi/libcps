@@ -6,6 +6,7 @@
 namespace cps {
 
 
+using Scalar = double;
 using Vector = Eigen::VectorXd;
 using Matrix = Eigen::MatrixXd;
 
