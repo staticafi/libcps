@@ -8,6 +8,8 @@ Solver::Solver(Setup const& setup_, Valuation const& seed_valuation_, Result con
     : setup{ setup_ }
     , seed_valuation{ seed_valuation_ }
     , seed_result{ seed_result_ }
+    , active_variable_indices{}
+    , active_bb_function_indices{}
     , finished{ false }
 {
     ASSUMPTION(
@@ -18,6 +20,46 @@ Solver::Solver(Setup const& setup_, Valuation const& seed_valuation_, Result con
         seed_result.bb_functions_values.size() == setup.comparators.size() &&
         seed_result.predicate_values.size() == setup.comparators.size()
     );
+
+    compute_active_indices();
+}
+
+
+void Solver::compute_active_indices()
+{
+    active_variable_indices.insert(setup.parameter_indices.back().begin(), setup.parameter_indices.back().end());
+    active_bb_function_indices.insert(setup.parameter_indices.size() - 1ULL);
+    std::unordered_set<std::size_t>  work_set{};
+    for (std::size_t  i = 1UL; i < setup.parameter_indices.size(); ++i)
+        work_set.insert(i - 1UL);
+    while (true)
+    {
+        bool changed{ false };
+        for (auto it = work_set.begin(); it != work_set.end(); )
+        {
+            auto const& params{ setup.parameter_indices.at(*it) };
+            bool intersection{ false };
+            for (auto i : params)
+                if (active_variable_indices.contains(i))
+                {
+                    intersection = true;
+                    break;
+                }
+            if (intersection)
+            {
+                active_variable_indices.insert(params.begin(), params.end());
+                active_bb_function_indices.insert(*it);
+
+                changed = true;
+
+                it = work_set.erase(it);
+            }
+            else
+                ++it;
+        }
+        if (changed == false)
+            break;
+    }
 }
 
 
