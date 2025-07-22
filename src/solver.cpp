@@ -14,7 +14,9 @@ Solver::Solver(Setup const& setup_, Valuation const& seed_valuation_, Result con
         !setup.variables.empty() &&
         !setup.comparators.empty() &&
         setup.comparators.size() == setup.parameter_indices.size() &&
-        !setup.parameter_indices.back().empty()
+        !setup.parameter_indices.back().empty() &&
+        seed_result.bb_functions_values.size() == setup.comparators.size() &&
+        seed_result.predicate_values.size() == setup.comparators.size()
     );
 }
 
