@@ -1,50 +1,44 @@
 #ifndef CPS_SOLVER_HPP_INCLUDED
 #   define CPS_SOLVER_HPP_INCLUDED
 
-#   include <cps/setup.hpp>
-#   include <cps/valuation.hpp>
-#   include <cps/result.hpp>
+#   include <cps/coverage_problem.hpp>
+#   include <cps/component.hpp>
 #   include <vector>
-#   include <unordered_set>
 #   include <functional>
+#   include <memory>
 #   include <cstdint>
 
 namespace cps {
 
 
-struct Solver
+enum struct Approach : std::uint8_t
 {
-    Solver(Setup const& setup_, Valuation const& seed_valuation_, Result const& seed_result_);
-
-    Setup const& get_setup() const { return setup; }
-    Valuation const& get_seed_valuation() const { return seed_valuation; }
-    Result const& get_seed_result() const { return seed_result; }
-    std::unordered_set<std::size_t> const& get_active_variable_indices() const { return active_variable_indices; }
-    std::unordered_set<std::size_t> const& get_active_bb_function_indices() const { return active_bb_function_indices; }
-
-    bool is_finished() const { return finished; }
-    bool is_solution(Result const& result) const;
-
-    void compute_next_valuation(Valuation& valuation);
-    void process_result(Result const& result);
-
-private:
-    void compute_active_indices();
-
-    Setup setup;
-    Valuation seed_valuation;
-    Result seed_result;
-    std::unordered_set<std::size_t> active_variable_indices;
-    std::unordered_set<std::size_t> active_bb_function_indices;
-    bool finished;
+    FUZZING_IN_LOCAL_SPACE = 0,
 };
 
 
-Result solve(
-    Setup const& setup,
-    Valuation const& seed_valuation,
-    Result const& seed_result,
-    std::function<Result(Valuation const&, Setup const&)> const& evaluator
+struct Solver
+{
+    Solver(CoverageProblem const& problem_, Approach approach = Approach::FUZZING_IN_LOCAL_SPACE);
+
+    CoverageProblem const& coverage_problem() const { return *problem; }
+
+    bool is_finished() const { return solver->is_finished(); }
+    void compute_next_input(std::vector<std::uint8_t>& input) { return solver->compute_next_input(input); }
+    void process_output(std::vector<Evaluation> const& output) { return solver->process_output(output); }
+
+private:
+    std::shared_ptr<CoverageProblem> problem;
+    std::unique_ptr<Component> solver;
+};
+
+
+bool solve(
+    std::vector<std::uint8_t>& solution_input,
+    std::vector<Evaluation>& solution_output,
+    CoverageProblem const& problem,
+    std::function<void(std::vector<std::uint8_t> const&, CoverageProblem const&, std::vector<Evaluation>&)> const& evaluator,
+    Approach approach = Approach::FUZZING_IN_LOCAL_SPACE
     );
 
 
