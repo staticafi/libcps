@@ -1,23 +1,30 @@
 #include <cps/solver_fuzzing_in_local_space.hpp>
+#include <cps/active_indices.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
 
 namespace cps {
 
 
-SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(std::shared_ptr<CoverageProblem> const problem_ptr)
+SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
+        std::vector<std::vector<std::size_t> > const& parameter_indices,
+        std::vector<Comparator> const& comparators,
+        std::vector<Variable> const& seed_input,
+        std::vector<Evaluation> const& seed_output
+        )
     : Component{}
-    , problem{ problem_ptr }
-    , state{ State::ROUND_BEGIN }
-    , component{ nullptr }
+    , fsm{ FiniteStateMachine::State::ROUND_BEGIN, nullptr }
+    , constants{ parameter_indices, comparators, {}, {} }
+    , round_constants{ seed_input, seed_output }
     , from_local_to_global_space{}
 {
+    compute_active_indices(constants.parameter_indices, constants.active_variable_indices, constants.active_bb_function_indices);
 }
 
 
-void SolverFuzzingInLocalSpace::compute_next_input(std::vector<std::uint8_t>& input)
+void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
 {
-    input = problem->input;
+    input = round_constants.seed_input;
     // while (true)
     // {
     //     if (component != nullptr && component->compute_next_valuation(valuation))
@@ -48,7 +55,7 @@ void SolverFuzzingInLocalSpace::compute_next_input(std::vector<std::uint8_t>& in
 
 void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& output)
 {
-    state = State::FINISHED; // TODO: This is incorrect temporary implementation!
+    fsm.state = FiniteStateMachine::State::FAILURE; // TODO: This is incorrect temporary implementation!
 }
 
 

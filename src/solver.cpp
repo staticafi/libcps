@@ -6,15 +6,26 @@
 namespace cps {
 
 
-Solver::Solver(CoverageProblem const& problem_, Approach const approach)
-    : problem{ std::make_shared<CoverageProblem>(problem_) }
-    , solver{ nullptr }
+Solver::Solver(
+        std::vector<std::vector<std::size_t> > const& parameter_indices,
+        std::vector<Comparator> const& comparators,
+        std::vector<Variable> const& seed_input,
+        std::vector<Evaluation> const& seed_output,
+        Approach const approach
+        )
+    : solver{ nullptr }
 {
-    ASSUMPTION(problem->valid());
+    ASSUMPTION(
+        !parameter_indices.back().empty() &&
+        !comparators.empty() &&
+        comparators.size() == parameter_indices.size() &&
+        !seed_input.empty() &&
+        seed_output.size() == comparators.size()
+    );
     switch (approach)
     {
         case Approach::FUZZING_IN_LOCAL_SPACE:
-            solver = std::make_unique<SolverFuzzingInLocalSpace>(problem);
+            solver = std::make_unique<SolverFuzzingInLocalSpace>(parameter_indices, comparators, seed_input, seed_output);
             break;
         default: UNREACHABLE(); break;
     }
@@ -22,28 +33,33 @@ Solver::Solver(CoverageProblem const& problem_, Approach const approach)
 
 
 bool solve(
-    std::vector<std::uint8_t>& solution_input,
+    std::vector<Variable>& solution_input,
     std::vector<Evaluation>& solution_output,
-    CoverageProblem const& problem,
-    std::function<void(std::vector<std::uint8_t> const&, CoverageProblem const&, std::vector<Evaluation>&)> const& evaluator,
+    std::vector<std::vector<std::size_t> > const& parameter_indices,
+    std::vector<Comparator> const& comparators,
+    std::vector<Variable> const& seed_input,
+    std::vector<Evaluation> const& seed_output,
+    std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
     Approach const approach
     )
 {
-    Solver solver{ problem, approach };
+    std::vector<bool> predicates;
+    for (auto const& eval : seed_output)
+        predicates.push_back(eval.predicate);
+    predicates.pop_back();
+
+    Solver solver{ parameter_indices, comparators, seed_input, seed_output, approach };
     while (!solver.is_finished())
     {
         solution_input.clear();
         solver.compute_next_input(solution_input);
 
         solution_output.clear();
-        evaluator(solution_input, solver.coverage_problem(), solution_output);
-
-        if (solver.coverage_problem().is_solution(solution_output))
-            return true;
+        evaluator(solution_input, predicates, solution_output);
 
         solver.process_output(solution_output);
     }
-    return false;
+    return solver.success();
 }
 
 
