@@ -75,10 +75,7 @@ protected:
         Comparator comparator;
     };
 
-    void StateRoundBegin_update();
-    State StateRoundBegin_transition();
-
-    struct StateLocalSpace
+    struct GradientComputationBase
     {
         enum struct Step
         {
@@ -87,10 +84,17 @@ protected:
             STOP,
         };
 
-        std::size_t active_function_index{ 0ULL };
         std::size_t column_index{ 0ULL };
         Step step{ Step::POSITIVE };
         Scalar epsilon{ 0.0 };
+    };
+
+    void StateRoundBegin_update();
+    State StateRoundBegin_transition();
+
+    struct StateLocalSpace : public GradientComputationBase
+    {
+        std::size_t active_function_index{ 0ULL };
         Vector gradient{};
     };
     State StateLocalSpace_enter();
@@ -98,18 +102,8 @@ protected:
     void StateLocalSpace_update(std::vector<Evaluation> const& output);
     State StateLocalSpace_transition();
 
-    struct StateConstraints
+    struct StateConstraints : public GradientComputationBase
     {
-        enum struct Step
-        {
-            POSITIVE,
-            NEGATIVE,
-            STOP,
-        };
-
-        std::size_t column_index{ 0ULL };
-        Step step{ Step::POSITIVE };
-        Scalar epsilon{ 0.0 };
         std::unordered_map<std::size_t, Vector> gradients{};
         std::unordered_set<std::size_t> partial_function_indices{};
     };
@@ -118,19 +112,7 @@ protected:
     void StateConstraints_update(std::vector<Evaluation> const& output);
     State StateConstraints_transition();
 
-    struct StateGradient
-    {
-        enum struct Step
-        {
-            POSITIVE,
-            NEGATIVE,
-            STOP,
-        };
-
-        std::size_t column_index{ 0ULL };
-        Step step{ Step::POSITIVE };
-        Scalar epsilon{ 0.0 };
-    };
+    struct StateGradient : public GradientComputationBase {};
     State StateGradient_enter();
     void StateGradient_update();
     void StateGradient_update(std::vector<Evaluation> const& output);
