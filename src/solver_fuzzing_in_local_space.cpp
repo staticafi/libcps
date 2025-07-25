@@ -18,6 +18,7 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     , constants{ parameter_indices, comparators, {}, {} }
     , round_constants{ seed_input, seed_output }
     , state{ State::ROUND_BEGIN }
+    , state_local_space{}
     , origin{}
     , matrix{}
 {

@@ -78,11 +78,11 @@ protected:
             STOP,
         };
 
-        std::size_t active_function_index;
-        std::size_t column_index;
-        Step step;
-        Scalar epsilon;
-        Vector gradient;
+        std::size_t active_function_index{ 0ULL };
+        std::size_t column_index{ 0ULL };
+        Step step{ Step::POSITIVE };
+        Scalar epsilon{ 0.0 };
+        Vector gradient{};
     };
     State StateLocalSpace_enter();
     void StateLocalSpace_update();
