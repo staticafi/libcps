@@ -7,6 +7,8 @@
 #   include <cps/component.hpp>
 #   include <cps/math.hpp>
 #   include <vector>
+#   include <unordered_set>
+#   include <unordered_map>
 #   include <memory>
 
 namespace cps {
@@ -66,6 +68,13 @@ protected:
         Vector vector;
     };
 
+    struct Constraint
+    {
+        Vector normal;
+        Scalar distance;
+        Comparator comparator;
+    };
+
     void StateRoundBegin_update();
     State StateRoundBegin_transition();
 
@@ -89,6 +98,26 @@ protected:
     void StateLocalSpace_update(std::vector<Evaluation> const& output);
     State StateLocalSpace_transition();
 
+    struct StateConstraints
+    {
+        enum struct Step
+        {
+            POSITIVE,
+            NEGATIVE,
+            STOP,
+        };
+
+        std::size_t column_index{ 0ULL };
+        Step step{ Step::POSITIVE };
+        Scalar epsilon{ 0.0 };
+        std::unordered_map<std::size_t, Vector> gradients{};
+        std::unordered_set<std::size_t> partial_function_indices{};
+    };
+    State StateConstraints_enter();
+    void StateConstraints_update();
+    void StateConstraints_update(std::vector<Evaluation> const& output);
+    State StateConstraints_transition();
+
     void updateMatrix(Vector const& gradient);
     Scalar computeEpsilon(Vector const& u);
 
@@ -98,9 +127,11 @@ protected:
 
     State state;
     StateLocalSpace state_local_space;
+    StateConstraints state_constraints;
 
     Vector origin;
     Matrix matrix;
+    std::vector<Constraint> constraints;
 };
 
 
