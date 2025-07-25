@@ -20,6 +20,7 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     , state{ State::ROUND_BEGIN }
     , state_local_space{}
     , state_constraints{}
+    , state_gradient{}
     , origin{}
     , matrix{}
 {
@@ -54,6 +55,10 @@ void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
             case State::CONSTRAINTS:
                 StateConstraints_update();
                 state = StateConstraints_transition();
+                break;
+            case State::GRADIENT:
+                StateGradient_update();
+                state = StateGradient_transition();
                 break;
             case State::SUCCESS:
             case State::FAILURE:
@@ -99,6 +104,9 @@ void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& ou
             break;
         case State::CONSTRAINTS:
             StateConstraints_update(output);
+            break;
+        case State::GRADIENT:
+            StateGradient_update(output);
             break;
         case State::SUCCESS:
         case State::FAILURE:
@@ -277,6 +285,65 @@ void SolverFuzzingInLocalSpace::StateConstraints_update(std::vector<Evaluation> 
 SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateConstraints_transition()
 {
     if (state_constraints.column_index < matrix.cols())
+        return state;
+    return StateGradient_enter();
+}
+
+
+SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient_enter()
+{
+    state_gradient.column_index = 0ULL;
+    state_gradient.step = StateGradient::Step::POSITIVE;
+    state_gradient.epsilon = 0.0;
+    gradient.resize(matrix.cols());
+    gradient.setZero();
+    return State::GRADIENT;
+}
+
+
+void SolverFuzzingInLocalSpace::StateGradient_update()
+{
+    if (state_gradient.step == StateGradient::Step::STOP)
+    {
+        ++state_gradient.column_index;
+        state_gradient.step = StateGradient::Step::POSITIVE;
+        state_gradient.epsilon = 0.0;
+    }
+
+    if (state_gradient.column_index == matrix.cols())
+        return;
+
+    Vector const u{ Vector::Unit(matrix.cols(), state_gradient.column_index) };
+    state_gradient.epsilon = computeEpsilon(matrix * u) * (state_gradient.step == StateGradient::Step::POSITIVE ? 1.0 : -1.0);
+
+    sample.vector = state_gradient.epsilon * u;
+    sample.ready = true;
+}
+
+
+void SolverFuzzingInLocalSpace::StateGradient_update(std::vector<Evaluation> const& output)
+{
+    std::size_t const fn_idx{ constants.parameter_indices.size() - 1UL };
+    if (fn_idx < output.size())
+    {
+        Scalar const finite_difference{
+            (output.at(fn_idx).function - round_constants.seed_output.at(fn_idx).function) / state_gradient.epsilon
+        };
+        if (!std::isnan(finite_difference) && std::isfinite(finite_difference))
+        {
+            gradient(state_gradient.column_index) = finite_difference;
+            state_gradient.step = StateGradient::Step::STOP;
+            return;
+        }
+    }
+    state_gradient.step = state_gradient.step == StateGradient::Step::POSITIVE ?
+        StateGradient::Step::NEGATIVE : StateGradient::Step::STOP;
+}
+
+
+SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient_transition()
+{
+    if (state_gradient.column_index < matrix.cols())
         return state;
     // TODO:
     return State::FAILURE;

@@ -118,6 +118,24 @@ protected:
     void StateConstraints_update(std::vector<Evaluation> const& output);
     State StateConstraints_transition();
 
+    struct StateGradient
+    {
+        enum struct Step
+        {
+            POSITIVE,
+            NEGATIVE,
+            STOP,
+        };
+
+        std::size_t column_index{ 0ULL };
+        Step step{ Step::POSITIVE };
+        Scalar epsilon{ 0.0 };
+    };
+    State StateGradient_enter();
+    void StateGradient_update();
+    void StateGradient_update(std::vector<Evaluation> const& output);
+    State StateGradient_transition();
+
     void updateMatrix(Vector const& gradient);
     Scalar computeEpsilon(Vector const& u);
 
@@ -128,10 +146,12 @@ protected:
     State state;
     StateLocalSpace state_local_space;
     StateConstraints state_constraints;
+    StateGradient state_gradient;
 
     Vector origin;
     Matrix matrix;
     std::vector<Constraint> constraints;
+    Vector gradient;
 };
 
 
