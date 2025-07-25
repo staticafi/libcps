@@ -1,5 +1,6 @@
 #include <cps/solver.hpp>
 #include <cps/solver_fuzzing_in_local_space.hpp>
+#include <cps/solver_fuzzing_in_global_space.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
 
@@ -13,7 +14,8 @@ Solver::Solver(
         std::vector<Evaluation> const& seed_output,
         Approach const approach
         )
-    : solver{ nullptr }
+    : Component{}
+    , solver{ nullptr }
 {
     ASSUMPTION(
         !parameter_indices.back().empty() &&
@@ -26,6 +28,9 @@ Solver::Solver(
     {
         case Approach::FUZZING_IN_LOCAL_SPACE:
             solver = std::make_unique<SolverFuzzingInLocalSpace>(parameter_indices, comparators, seed_input, seed_output);
+            break;
+        case Approach::FUZZING_IN_GLOBAL_SPACE:
+            solver = std::make_unique<SolverFuzzingInGlobalSpace>(parameter_indices, comparators, seed_input, seed_output);
             break;
         default: UNREACHABLE(); break;
     }

@@ -16,10 +16,11 @@ namespace cps {
 enum struct Approach : std::uint8_t
 {
     FUZZING_IN_LOCAL_SPACE = 0,
+    FUZZING_IN_GLOBAL_SPACE = 1,
 };
 
 
-struct Solver
+struct Solver : public Component
 {
     Solver(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
@@ -29,10 +30,10 @@ struct Solver
         Approach approach = Approach::FUZZING_IN_LOCAL_SPACE
     );
 
-    bool is_finished() const { return solver->is_finished(); }
-    bool success() const { return solver->success(); }
-    void compute_next_input(std::vector<Variable>& input) { return solver->compute_next_input(input); }
-    void process_output(std::vector<Evaluation> const& output) { return solver->process_output(output); }
+    bool success() const override { return solver->success(); }
+    bool failure() const override { return solver->failure(); }
+    void compute_next_input(std::vector<Variable>& input) override { return solver->compute_next_input(input); }
+    void process_output(std::vector<Evaluation> const& output) override { return solver->process_output(output); }
 
 private:
     std::unique_ptr<Component> solver;

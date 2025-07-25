@@ -1,5 +1,5 @@
-#ifndef CPS_DETAIL_SOLVER_HPP_INCLUDED
-#   define CPS_DETAIL_SOLVER_HPP_INCLUDED
+#ifndef CPS_SOLVER_FUZZING_IN_LOCAL_SPACE_HPP_INCLUDED
+#   define CPS_SOLVER_FUZZING_IN_LOCAL_SPACE_HPP_INCLUDED
 
 #   include <cps/variable.hpp>
 #   include <cps/evaluation.hpp>
@@ -7,10 +7,7 @@
 #   include <cps/component.hpp>
 #   include <cps/math.hpp>
 #   include <vector>
-#   include <unordered_set>
-#   include <functional>
 #   include <memory>
-#   include <cstdint>
 
 namespace cps {
 
@@ -23,38 +20,38 @@ struct SolverFuzzingInLocalSpace : public Component
         std::vector<Variable> const& seed_input,
         std::vector<Evaluation> const& seed_output
     );
+    virtual ~SolverFuzzingInLocalSpace() {}
 
-    bool is_finished() const override { return fsm.state == FiniteStateMachine::State::SUCCESS || fsm.state == FiniteStateMachine::State::FAILURE; }
-    bool success() const override { return fsm.state == FiniteStateMachine::State::SUCCESS; }
+    bool success() const override { return state == State::SUCCESS; }
+    bool failure() const override { return state == State::FAILURE; }
+
     void compute_next_input(std::vector<Variable>& input) override;
-    void process_output(std::vector<Evaluation> const& output) override;
+    void process_output(std::vector<Evaluation> const& output_) override;
 
-private:
+protected:
 
-    struct FiniteStateMachine
+    virtual void initialize_active_indices();
+
+    enum struct State
     {
-        enum struct State
-        {
-            ROUND_BEGIN,
-            MATRIX,
-            CONSTRAINTS,
-            GRADIENT,
-            FUZZING,
-            ROUND_END,
-            SUCCESS,
-            FAILURE,
-        };
-
-        State state;
-        std::unique_ptr<Component> component;
+        ROUND_BEGIN,
+        LOCAL_SPACE,
+        CONSTRAINTS,
+        GRADIENT,
+        FUZZING_GRADIENT_DESCENT,
+        FUZZING_BIT_MUTATIONS,
+        FUZZING_RANDOM_MUTATIONS,
+        ROUND_END,
+        SUCCESS,
+        FAILURE,
     };
 
     struct Constants
     {
         std::vector<std::vector<std::size_t> > parameter_indices;
         std::vector<Comparator> comparators;
-        std::unordered_set<std::size_t> active_variable_indices;
-        std::unordered_set<std::size_t> active_bb_function_indices;
+        std::vector<std::size_t> active_variable_indices;
+        std::vector<std::size_t> active_function_indices;
     };
 
     struct RoundConstants
@@ -63,11 +60,47 @@ private:
         std::vector<Evaluation> seed_output;
     };
 
-    FiniteStateMachine fsm;
+    struct Sample
+    {
+        bool ready;
+        Vector vector;
+    };
+
+    void StateRoundBegin_update();
+    State StateRoundBegin_transition();
+
+    struct StateLocalSpace
+    {
+        enum struct Step
+        {
+            POSITIVE,
+            NEGATIVE,
+            STOP,
+        };
+
+        std::size_t active_function_index;
+        std::size_t column_index;
+        Step step;
+        Scalar epsilon;
+        Vector gradient;
+    };
+    State StateLocalSpace_enter();
+    void StateLocalSpace_update();
+    void StateLocalSpace_update(std::vector<Evaluation> const& output);
+    State StateLocalSpace_transition();
+
+    void updateMatrix(Vector const& gradient);
+    Scalar computeEpsilon(Vector const& u);
+
     Constants constants;
     RoundConstants round_constants;
+    Sample sample;
 
-    Matrix from_local_to_global_space;
+    State state;
+    StateLocalSpace state_local_space;
+
+    Vector origin;
+    Matrix matrix;
 };
 
 
