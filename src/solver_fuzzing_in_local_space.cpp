@@ -139,6 +139,13 @@ void SolverFuzzingInLocalSpace::StateLocalSpace_update()
         return;
     }
 
+    if (state_local_space.step == StateLocalSpace::Step::STOP)
+    {
+        ++state_local_space.column_index;
+        state_local_space.step = StateLocalSpace::Step::POSITIVE;
+        state_local_space.epsilon = 0.0;
+    }
+
     if (state_local_space.column_index == matrix.cols())
     {
         updateMatrix(state_local_space.gradient);
@@ -149,13 +156,6 @@ void SolverFuzzingInLocalSpace::StateLocalSpace_update()
         state_local_space.epsilon = 0.0;
         state_local_space.gradient.resize(matrix.cols());
         state_local_space.gradient.setZero();
-        return;
-    }
-
-    if (state_local_space.step == StateLocalSpace::Step::STOP)
-    {
-        ++state_local_space.column_index;
-        state_local_space.step = StateLocalSpace::Step::POSITIVE;
         return;
     }
 
