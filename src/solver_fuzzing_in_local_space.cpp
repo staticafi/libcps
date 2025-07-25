@@ -159,8 +159,8 @@ void SolverFuzzingInLocalSpace::StateLocalSpace_update()
         return;
     }
 
-    Vector const u{ matrix.col(state_local_space.column_index) };
-    state_local_space.epsilon = computeEpsilon(u) * (state_local_space.step == StateLocalSpace::Step::POSITIVE ? 1.0 : -1.0);
+    Vector const u{ Vector::Unit(matrix.cols(), state_local_space.column_index) };
+    state_local_space.epsilon = computeEpsilon(matrix * u) * (state_local_space.step == StateLocalSpace::Step::POSITIVE ? 1.0 : -1.0);
 
     sample.vector = state_local_space.epsilon * u;
     sample.ready = true;
