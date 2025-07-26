@@ -347,4 +347,104 @@ Scalar SolverFuzzingInLocalSpace::compute_epsilon(Vector const& u) const
 }
 
 
+bool SolverFuzzingInLocalSpace::are_constraints_satisfied(Vector const& u) const
+{
+    for (Constraint const& constraint : constraints)
+    {
+        Scalar const signed_distance{ u.dot(constraint.normal) };
+        switch (constraint.comparator)
+        {
+            case Comparator::UNEQUAL:
+                if (!(signed_distance != constraint.signed_distance))
+                    return false;
+                break;
+            case Comparator::LESS:
+                if (!(signed_distance < constraint.signed_distance))
+                    return false;
+                break;
+            case Comparator::LESS_EQUAL:
+                if (!(signed_distance <= constraint.signed_distance))
+                    return false;
+                break;
+            case Comparator::GREATER:
+                if (!(signed_distance > constraint.signed_distance))
+                    return false;
+                break;
+            case Comparator::GREATER_EQUAL:
+                if (!(signed_distance >= constraint.signed_distance))
+                    return false;
+                break;
+            default: { UNREACHABLE(); } break;
+        }
+    }
+    return true;
+}
+
+
+bool SolverFuzzingInLocalSpace::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
+{
+    for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
+    {
+        bool  clipped{ false };
+        for (Constraint const& constraint : constraints)
+        {
+            Vector direction{ constraint.normal };
+            if (iteration == 0UL && gradient.dot(gradient) > 1e-9)
+            {
+                Vector const component_of_normal = constraint.normal - (gradient.dot(constraint.normal) / gradient.dot(gradient)) * gradient;
+                if (component_of_normal.dot(component_of_normal) > 1e-9)
+                    direction = component_of_normal / component_of_normal.dot(constraint.normal);
+            }
+            Scalar const signed_distance{ u.dot(constraint.normal) };
+            if (!valid(signed_distance))
+                return false;
+
+            Scalar const epsilon{ epsilon_around(signed_distance) };
+            switch (constraint.comparator)
+            {
+                case Comparator::UNEQUAL:
+                    if (!(constraint.signed_distance != signed_distance))
+                    {
+                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
+                        clipped = true;
+                    }
+                    break;
+                case Comparator::LESS:
+                    if (!(signed_distance < constraint.signed_distance))
+                    {
+                        u += ((constraint.signed_distance - epsilon) - signed_distance) * direction;
+                        clipped = true;
+                    }
+                    break;
+                case Comparator::LESS_EQUAL:
+                    if (!(signed_distance <= constraint.signed_distance))
+                    {
+                        u += (constraint.signed_distance - signed_distance) * direction;
+                        clipped = true;
+                    }
+                    break;
+                case Comparator::GREATER:
+                    if (!(signed_distance > constraint.signed_distance))
+                    {
+                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
+                        clipped = true;
+                    }
+                    break;
+                case Comparator::GREATER_EQUAL:
+                    if (!(signed_distance >= constraint.signed_distance))
+                    {
+                        u += (constraint.signed_distance - signed_distance) * direction;
+                        clipped = true;
+                    }
+                    break;
+                default: { UNREACHABLE(); } break;
+            }
+        }
+        if (!clipped)
+            return true;
+    }
+    return false;
+}
+
+
 }

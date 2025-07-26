@@ -149,6 +149,8 @@ protected:
 
     void update_matrix(Vector const& gradient);
     Scalar compute_epsilon(Vector const& u) const;
+    bool are_constraints_satisfied(Vector const& u) const;
+    bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 10ULL) const;
 
     Constants constants;
     RoundConstants round_constants;
