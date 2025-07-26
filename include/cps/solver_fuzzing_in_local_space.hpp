@@ -119,7 +119,7 @@ protected:
     State StateGradient_transition();
 
     void updateMatrix(Vector const& gradient);
-    Scalar computeEpsilon(Vector const& u);
+    Scalar computeEpsilon(Vector const& u) const;
 
     Constants constants;
     RoundConstants round_constants;

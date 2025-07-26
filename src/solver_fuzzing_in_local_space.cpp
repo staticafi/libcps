@@ -372,7 +372,7 @@ void SolverFuzzingInLocalSpace::updateMatrix(Vector const& gradient)
 }
 
 
-Scalar SolverFuzzingInLocalSpace::computeEpsilon(Vector const& u)
+Scalar SolverFuzzingInLocalSpace::computeEpsilon(Vector const& u) const
 {
     Scalar epsilon{ 0.0 };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
