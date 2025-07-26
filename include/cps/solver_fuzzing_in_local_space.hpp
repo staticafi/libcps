@@ -5,6 +5,7 @@
 #   include <cps/evaluation.hpp>
 #   include <cps/comparator.hpp>
 #   include <cps/component.hpp>
+#   include <cps/config.hpp>
 #   include <cps/math.hpp>
 #   include <vector>
 #   include <unordered_set>
@@ -20,9 +21,9 @@ struct SolverFuzzingInLocalSpace : public Component
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
         std::vector<Variable> const& seed_input,
-        std::vector<Evaluation> const& seed_output
-    );
-    virtual ~SolverFuzzingInLocalSpace() {}
+        std::vector<Evaluation> const& seed_output,
+        Config const& config_
+        );
 
     bool success() const override { return state == State::SUCCESS; }
     bool failure() const override { return state == State::FAILURE; }
@@ -30,9 +31,7 @@ struct SolverFuzzingInLocalSpace : public Component
     void compute_next_input(std::vector<Variable>& input) override;
     void process_output(std::vector<Evaluation> const& output_) override;
 
-protected:
-
-    virtual void initialize_active_indices();
+private:
 
     struct Constants
     {
@@ -152,6 +151,7 @@ protected:
     bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 10ULL) const;
 
+    Config config;
     Constants constants;
     RoundConstants round_constants;
     Sample sample;

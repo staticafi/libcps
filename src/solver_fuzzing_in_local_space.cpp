@@ -12,9 +12,11 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
         std::vector<Variable> const& seed_input,
-        std::vector<Evaluation> const& seed_output
+        std::vector<Evaluation> const& seed_output,
+        Config const& config_
         )
     : Component{}
+    , config{ config_ }
     , constants{ parameter_indices, comparators, {}, {} }
     , round_constants{ seed_input, seed_output }
     , sample{}
@@ -38,14 +40,16 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     , constraints{}
     , gradient{ Vector(0) }
 {
-    initialize_active_indices();
+    if (config.build_local_space)
+        cps::compute_active_indices(constants.parameter_indices, constants.active_variable_indices, constants.active_function_indices);
+    else
+    {
+        constants.active_variable_indices = constants.parameter_indices.back();
+        std::sort(constants.active_variable_indices.begin(), constants.active_variable_indices.end());
+        constants.active_function_indices.push_back(constants.parameter_indices.size() - 1ULL);
+    }
+
     state_processors.at(state)->enter();
-}
-
-
-void SolverFuzzingInLocalSpace::initialize_active_indices()
-{
-    cps::compute_active_indices(constants.parameter_indices, constants.active_variable_indices, constants.active_function_indices);
 }
 
 

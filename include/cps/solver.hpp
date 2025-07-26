@@ -5,19 +5,13 @@
 #   include <cps/evaluation.hpp>
 #   include <cps/comparator.hpp>
 #   include <cps/component.hpp>
+#   include <cps/config.hpp>
 #   include <vector>
 #   include <functional>
 #   include <memory>
 #   include <cstdint>
 
 namespace cps {
-
-
-enum struct Approach : std::uint8_t
-{
-    FUZZING_IN_LOCAL_SPACE = 0,
-    FUZZING_IN_GLOBAL_SPACE = 1,
-};
 
 
 struct Solver : public Component
@@ -27,7 +21,7 @@ struct Solver : public Component
         std::vector<Comparator> const& comparators,
         std::vector<Variable> const& seed_input,
         std::vector<Evaluation> const& seed_output,
-        Approach approach = Approach::FUZZING_IN_LOCAL_SPACE
+        Config const& config = Config{}
     );
 
     bool success() const override { return solver->success(); }
@@ -48,7 +42,7 @@ bool solve(
     std::vector<Variable> const& seed_input,
     std::vector<Evaluation> const& seed_output,
     std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
-    Approach approach = Approach::FUZZING_IN_LOCAL_SPACE
+    Config const& config = Config{}
     );
 
 
