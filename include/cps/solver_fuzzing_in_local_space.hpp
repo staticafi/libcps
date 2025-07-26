@@ -34,20 +34,6 @@ protected:
 
     virtual void initialize_active_indices();
 
-    enum struct State
-    {
-        ROUND_BEGIN,
-        LOCAL_SPACE,
-        CONSTRAINTS,
-        GRADIENT,
-        FUZZING_GRADIENT_DESCENT,
-        FUZZING_BIT_MUTATIONS,
-        FUZZING_RANDOM_MUTATIONS,
-        ROUND_END,
-        SUCCESS,
-        FAILURE,
-    };
-
     struct Constants
     {
         std::vector<std::vector<std::size_t> > parameter_indices{};
@@ -75,15 +61,50 @@ protected:
         Comparator comparator{ Comparator::EQUAL };
     };
 
-    void StateRoundBegin_update();
-    State StateRoundBegin_transition();
-
-    struct GradientComputationBase
+    enum struct State
     {
+        ROUND_BEGIN,
+        LOCAL_SPACE,
+        CONSTRAINTS,
+        GRADIENT,
+        FUZZING_GRADIENT_DESCENT,
+        FUZZING_BIT_MUTATIONS,
+        FUZZING_RANDOM_MUTATIONS,
+        ROUND_END,
+
+        SUCCESS,
+        FAILURE,
+    };
+
+    struct StateProcessor
+    {
+        explicit StateProcessor(SolverFuzzingInLocalSpace* const solver = nullptr) : solver_{ solver } {}
+        virtual ~StateProcessor() {}
+        SolverFuzzingInLocalSpace& solver() { return *solver_; }
+        SolverFuzzingInLocalSpace const& solver() const { return *solver_; }
+        virtual void enter() {}
+        virtual void update() {}
+        virtual void update(std::vector<Evaluation> const& output) {}
+        virtual State transition() const = 0;
+    private:
+        SolverFuzzingInLocalSpace* solver_;
+    };
+
+    struct StateRoundBegin : public StateProcessor
+    {
+        explicit StateRoundBegin(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        void enter() override;
+        State transition() const override { return State::LOCAL_SPACE; }
+    };
+
+    struct GradientComputationBase : public StateProcessor
+    {
+        explicit GradientComputationBase(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
         void reset_gradient_computation() { column_index = 0ULL; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
         void reset_for_next_partial() { ++column_index; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
-        Vector compute_partial_step_vector(SolverFuzzingInLocalSpace const* const solver);
+        Vector compute_partial_step_vector();
         Scalar compute_finite_difference(Scalar const f_step, Scalar const f) const { return (f_step - f) / current_coeff; }
+    protected:
         std::size_t column_index{ 0ULL };
         Scalar current_coeff{};
         std::vector<Scalar> step_coeffs{};
@@ -92,29 +113,39 @@ protected:
 
     struct StateLocalSpace : public GradientComputationBase
     {
+        explicit StateLocalSpace(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        void enter() override;
+        void update() override;
+        void update(std::vector<Evaluation> const& output) override;
+        State transition() const override;
+    private:
         std::size_t active_function_index{ 0ULL };
         Vector gradient{};
     };
-    State StateLocalSpace_enter();
-    void StateLocalSpace_update();
-    void StateLocalSpace_update(std::vector<Evaluation> const& output);
-    State StateLocalSpace_transition();
 
     struct StateConstraints : public GradientComputationBase
     {
+        explicit StateConstraints(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        void enter() override;
+        void update() override;
+        void update(std::vector<Evaluation> const& output) override;
+        State transition() const override;
+    private:
         std::unordered_map<std::size_t, Vector> gradients{};
         std::unordered_set<std::size_t> partial_function_indices{};
     };
-    State StateConstraints_enter();
-    void StateConstraints_update();
-    void StateConstraints_update(std::vector<Evaluation> const& output);
-    State StateConstraints_transition();
 
-    struct StateGradient : public GradientComputationBase {};
-    State StateGradient_enter();
-    void StateGradient_update();
-    void StateGradient_update(std::vector<Evaluation> const& output);
-    State StateGradient_transition();
+    struct StateGradient : public GradientComputationBase
+    {
+        explicit StateGradient(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        void enter() override;
+        void update() override;
+        void update(std::vector<Evaluation> const& output) override;
+        State transition() const override;
+    };
+
+    struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
+    struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
     void updateMatrix(Vector const& gradient);
     Scalar computeEpsilon(Vector const& u) const;
@@ -124,9 +155,13 @@ protected:
     Sample sample;
 
     State state;
+    StateRoundBegin state_round_begin;
     StateLocalSpace state_local_space;
     StateConstraints state_constraints;
     StateGradient state_gradient;
+    StateSuccess state_success;
+    StateFailure state_failure;
+    std::unordered_map<State, StateProcessor*> state_processors;
 
     Vector origin;
     Matrix matrix;
