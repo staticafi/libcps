@@ -148,7 +148,7 @@ protected:
     struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
     void update_matrix(Vector const& gradient);
-    Scalar compute_epsilon(Vector const& u) const;
+    Scalar epsilon_step_along_vector(Vector const& u) const;
     bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 10ULL) const;
 
