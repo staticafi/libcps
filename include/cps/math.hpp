@@ -48,7 +48,7 @@ inline R cast(Scalar value)
 
 
 template<typename T>
-inline Scalar epsilonStep(T x, Scalar dx)
+inline Scalar epsilon_step(T const x, Scalar const dx)
 {
     using Type = std::decay_t<T>;
     if constexpr (std::numeric_limits<Type>::is_integer)

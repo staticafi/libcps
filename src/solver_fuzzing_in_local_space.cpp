@@ -337,7 +337,7 @@ Scalar SolverFuzzingInLocalSpace::compute_epsilon(Vector const& u) const
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
         std::visit(
             [i, &u, &epsilon](auto const x) {
-                Scalar const delta{ epsilonStep(x, u(i)) };
+                Scalar const delta{ epsilon_step(x, u(i)) };
                 if (valid(delta) && delta > epsilon)
                     epsilon = delta;
             },
