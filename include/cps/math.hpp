@@ -4,7 +4,6 @@
 #   include <Eigen/Dense>
 #   include <cmath>
 #   include <type_traits>
-//#   include <utility/math.hpp>
 
 namespace cps {
 
@@ -12,10 +11,6 @@ namespace cps {
 using Scalar = double;
 using Vector = Eigen::VectorXd;
 using Matrix = Eigen::MatrixXd;
-
-// using Scalar = double;
-// using Vector = vecf64;
-// using Matrix = matf64;
 
 
 inline bool valid(Scalar const s) { return !std::isnan(s) && std::isfinite(s); }
