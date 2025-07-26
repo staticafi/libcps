@@ -57,7 +57,7 @@ protected:
     struct Constraint
     {
         Vector normal{ Vector(0) };
-        Scalar distance{ 0.0 };
+        Scalar signed_distance{ 0.0 };
         Comparator comparator{ Comparator::EQUAL };
     };
 
