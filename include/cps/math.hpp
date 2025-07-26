@@ -43,17 +43,24 @@ inline R cast(Scalar value)
 
 
 template<typename T>
+inline Scalar epsilon_around(T const x)
+{
+    using Type = std::decay_t<T>;
+    static_assert(std::is_same<Type, float>::value || std::is_same<Type, double>::value);
+    int x_exponent;
+    std::frexp(x, &x_exponent);
+    return std::pow(2.0, x_exponent - (std::numeric_limits<Type>::digits >> 2));
+}
+
+
+template<typename T>
 inline Scalar epsilon_step(T const x, Scalar const dx)
 {
     using Type = std::decay_t<T>;
     if constexpr (std::numeric_limits<Type>::is_integer)
         return 1.0 / std::fabs(dx);
     else
-    {
-        int x_exponent;
-        std::frexp(x, &x_exponent);
-        return std::pow(2.0, x_exponent - (std::numeric_limits<Type>::digits >> 2));
-    }
+        return epsilon_around(x);
 }
 
 
