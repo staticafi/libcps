@@ -147,8 +147,8 @@ protected:
     struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
     struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
-    void updateMatrix(Vector const& gradient);
-    Scalar computeEpsilon(Vector const& u) const;
+    void update_matrix(Vector const& gradient);
+    Scalar compute_epsilon(Vector const& u) const;
 
     Constants constants;
     RoundConstants round_constants;

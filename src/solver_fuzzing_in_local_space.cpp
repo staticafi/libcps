@@ -124,7 +124,7 @@ Vector SolverFuzzingInLocalSpace::GradientComputationBase::compute_partial_step_
     Vector const u{ Vector::Unit(solver().matrix.cols(), column_index) };
     if (step_coeffs.size() == STEP_COEFFS.size())
     {
-        Scalar const epsilon = solver().computeEpsilon(solver().matrix * u);
+        Scalar const epsilon = solver().compute_epsilon(solver().matrix * u);
         for (Scalar& coeff : step_coeffs)
             coeff *= epsilon;
     }
@@ -156,7 +156,7 @@ void SolverFuzzingInLocalSpace::StateLocalSpace::update()
 
     if (column_index == solver().matrix.cols())
     {
-        solver().updateMatrix(gradient);
+        solver().update_matrix(gradient);
 
         ++active_function_index;
         reset_gradient_computation();
@@ -309,7 +309,7 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient::trans
 }
 
 
-void SolverFuzzingInLocalSpace::updateMatrix(Vector const& gradient)
+void SolverFuzzingInLocalSpace::update_matrix(Vector const& gradient)
 {
     if (!valid(gradient) || gradient.norm() < 1e-9)
         return;
@@ -331,7 +331,7 @@ void SolverFuzzingInLocalSpace::updateMatrix(Vector const& gradient)
 }
 
 
-Scalar SolverFuzzingInLocalSpace::computeEpsilon(Vector const& u) const
+Scalar SolverFuzzingInLocalSpace::compute_epsilon(Vector const& u) const
 {
     Scalar epsilon{ 0.0 };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
