@@ -75,22 +75,20 @@ protected:
         Comparator comparator{ Comparator::EQUAL };
     };
 
-    struct GradientComputationBase
-    {
-        enum struct Step
-        {
-            POSITIVE,
-            NEGATIVE,
-            STOP,
-        };
-
-        std::size_t column_index{ 0ULL };
-        Step step{ Step::POSITIVE };
-        Scalar epsilon{ 0.0 };
-    };
-
     void StateRoundBegin_update();
     State StateRoundBegin_transition();
+
+    struct GradientComputationBase
+    {
+        void reset_gradient_computation() { column_index = 0ULL; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
+        void reset_for_next_partial() { ++column_index; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
+        Vector compute_partial_step_vector(SolverFuzzingInLocalSpace const* const solver);
+        Scalar compute_finite_difference(Scalar const f_step, Scalar const f) const { return (f_step - f) / current_coeff; }
+        std::size_t column_index{ 0ULL };
+        Scalar current_coeff{};
+        std::vector<Scalar> step_coeffs{};
+        inline static std::vector<Scalar> const STEP_COEFFS{ -1.0, 1.0 };
+    };
 
     struct StateLocalSpace : public GradientComputationBase
     {
