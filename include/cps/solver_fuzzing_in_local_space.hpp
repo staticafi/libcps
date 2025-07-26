@@ -50,29 +50,29 @@ protected:
 
     struct Constants
     {
-        std::vector<std::vector<std::size_t> > parameter_indices;
-        std::vector<Comparator> comparators;
-        std::vector<std::size_t> active_variable_indices;
-        std::vector<std::size_t> active_function_indices;
+        std::vector<std::vector<std::size_t> > parameter_indices{};
+        std::vector<Comparator> comparators{};
+        std::vector<std::size_t> active_variable_indices{};
+        std::vector<std::size_t> active_function_indices{};
     };
 
     struct RoundConstants
     {
-        std::vector<Variable> seed_input;
-        std::vector<Evaluation> seed_output;
+        std::vector<Variable> seed_input{};
+        std::vector<Evaluation> seed_output{};
     };
 
     struct Sample
     {
-        bool ready;
-        Vector vector;
+        bool ready{ false };
+        Vector vector{};
     };
 
     struct Constraint
     {
-        Vector normal;
-        Scalar distance;
-        Comparator comparator;
+        Vector normal{ Vector(0) };
+        Scalar distance{ 0.0 };
+        Comparator comparator{ Comparator::EQUAL };
     };
 
     struct GradientComputationBase

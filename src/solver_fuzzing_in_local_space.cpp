@@ -17,12 +17,15 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     : Component{}
     , constants{ parameter_indices, comparators, {}, {} }
     , round_constants{ seed_input, seed_output }
+    , sample{}
     , state{ State::ROUND_BEGIN }
     , state_local_space{}
     , state_constraints{}
     , state_gradient{}
-    , origin{}
-    , matrix{}
+    , origin{ Vector(0) }
+    , matrix{ Matrix(0,0) }
+    , constraints{}
+    , gradient{ Vector(0) }
 {
     initialize_active_indices();
 }
