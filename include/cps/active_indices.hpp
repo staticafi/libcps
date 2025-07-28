@@ -1,7 +1,6 @@
 #ifndef CPS_ACTIVE_INDICES_HPP_INCLUDED
 #   define CPS_ACTIVE_INDICES_HPP_INCLUDED
 
-#   include <cps/solver_fuzzing_in_local_space.hpp>
 #   include <vector>
 
 namespace cps {

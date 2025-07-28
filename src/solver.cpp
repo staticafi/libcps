@@ -1,5 +1,5 @@
 #include <cps/solver.hpp>
-#include <cps/solver_fuzzing_in_local_space.hpp>
+#include <cps/solver_impl.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
 
@@ -23,7 +23,7 @@ Solver::Solver(
         !seed_input.empty() &&
         seed_output.size() == comparators.size()
     );
-    solver = std::make_unique<SolverFuzzingInLocalSpace>(parameter_indices, comparators, seed_input, seed_output, config);
+    solver = std::make_unique<SolverImpl>(parameter_indices, comparators, seed_input, seed_output, config);
 }
 
 

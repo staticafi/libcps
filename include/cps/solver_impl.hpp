@@ -15,9 +15,9 @@
 namespace cps {
 
 
-struct SolverFuzzingInLocalSpace : public Component
+struct SolverImpl : public Component
 {
-    SolverFuzzingInLocalSpace(
+    SolverImpl(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
         std::vector<Variable> const& seed_input,
@@ -88,28 +88,28 @@ private:
 
     struct StateProcessor
     {
-        explicit StateProcessor(SolverFuzzingInLocalSpace* const solver = nullptr) : solver_{ solver } {}
+        explicit StateProcessor(SolverImpl* const solver = nullptr) : solver_{ solver } {}
         virtual ~StateProcessor() {}
-        SolverFuzzingInLocalSpace& solver() { return *solver_; }
-        SolverFuzzingInLocalSpace const& solver() const { return *solver_; }
+        SolverImpl& solver() { return *solver_; }
+        SolverImpl const& solver() const { return *solver_; }
         virtual void enter() {}
         virtual void update() {}
         virtual void update(std::vector<Evaluation> const& output) {}
         virtual State transition() const = 0;
     private:
-        SolverFuzzingInLocalSpace* solver_;
+        SolverImpl* solver_;
     };
 
     struct StateRoundBegin : public StateProcessor
     {
-        explicit StateRoundBegin(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        explicit StateRoundBegin(SolverImpl* const solver) : StateProcessor{ solver } {}
         void enter() override;
         State transition() const override { return State::LOCAL_SPACE; }
     };
 
     struct GradientComputationBase : public StateProcessor
     {
-        explicit GradientComputationBase(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        explicit GradientComputationBase(SolverImpl* const solver) : StateProcessor{ solver } {}
         void reset_gradient_computation() { column_index = 0ULL; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
         void reset_for_next_partial() { ++column_index; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
         Vector compute_partial_step_vector();
@@ -123,7 +123,7 @@ private:
 
     struct StateLocalSpace : public GradientComputationBase
     {
-        explicit StateLocalSpace(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        explicit StateLocalSpace(SolverImpl* const solver) : GradientComputationBase{ solver } {}
         void enter() override;
         void update() override;
         void update(std::vector<Evaluation> const& output) override;
@@ -135,7 +135,7 @@ private:
 
     struct StateConstraints : public GradientComputationBase
     {
-        explicit StateConstraints(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        explicit StateConstraints(SolverImpl* const solver) : GradientComputationBase{ solver } {}
         void enter() override;
         void update() override;
         void update(std::vector<Evaluation> const& output) override;
@@ -147,7 +147,7 @@ private:
 
     struct StateGradient : public GradientComputationBase
     {
-        explicit StateGradient(SolverFuzzingInLocalSpace* const solver) : GradientComputationBase{ solver } {}
+        explicit StateGradient(SolverImpl* const solver) : GradientComputationBase{ solver } {}
         void enter() override;
         void update() override;
         void update(std::vector<Evaluation> const& output) override;
@@ -156,7 +156,7 @@ private:
 
     struct StateFuzzingGradientDescent : public StateProcessor
     {
-        explicit StateFuzzingGradientDescent(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        explicit StateFuzzingGradientDescent(SolverImpl* const solver) : StateProcessor{ solver } {}
         void enter() override;
         void update() override;
         State transition() const override;
@@ -167,7 +167,7 @@ private:
 
     struct StateRoundEnd : public StateProcessor
     {
-        explicit StateRoundEnd(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        explicit StateRoundEnd(SolverImpl* const solver) : StateProcessor{ solver } {}
         void enter() override;
         State transition() const override;
     private:

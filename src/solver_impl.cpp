@@ -1,4 +1,4 @@
-#include <cps/solver_fuzzing_in_local_space.hpp>
+#include <cps/solver_impl.hpp>
 #include <cps/active_indices.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
@@ -27,7 +27,7 @@ bool is_better_evaluation(Comparator const comparator, Scalar const current_valu
 }
 
 
-SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
+SolverImpl::SolverImpl(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
         std::vector<Variable> const& seed_input,
@@ -77,7 +77,7 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
 }
 
 
-void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
+void SolverImpl::compute_next_input(std::vector<Variable>& input)
 {
     input = round_constants.seed_input;
 
@@ -108,7 +108,7 @@ void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
 }
 
 
-void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& output_)
+void SolverImpl::process_output(std::vector<Evaluation> const& output_)
 {
     if (is_finished())
         return;
@@ -147,7 +147,7 @@ void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& ou
 }
 
 
-void SolverFuzzingInLocalSpace::StateRoundBegin::enter()
+void SolverImpl::StateRoundBegin::enter()
 {
     std::size_t const n{ solver().constants.active_variable_indices.size() };
     solver().origin.resize(n);
@@ -161,7 +161,7 @@ void SolverFuzzingInLocalSpace::StateRoundBegin::enter()
 }
 
 
-Vector SolverFuzzingInLocalSpace::GradientComputationBase::compute_partial_step_vector()
+Vector SolverImpl::GradientComputationBase::compute_partial_step_vector()
 {
     Vector const u{ Vector::Unit(solver().matrix.cols(), column_index) };
     if (step_coeffs.size() == STEP_COEFFS.size())
@@ -176,7 +176,7 @@ Vector SolverFuzzingInLocalSpace::GradientComputationBase::compute_partial_step_
 }
 
 
-void SolverFuzzingInLocalSpace::StateLocalSpace::enter()
+void SolverImpl::StateLocalSpace::enter()
 {
     active_function_index = 0ULL;
     reset_gradient_computation();
@@ -184,7 +184,7 @@ void SolverFuzzingInLocalSpace::StateLocalSpace::enter()
 }
 
 
-void SolverFuzzingInLocalSpace::StateLocalSpace::update()
+void SolverImpl::StateLocalSpace::update()
 {
     std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
     if (solver().constants.comparators.at(fn_idx) != Comparator::EQUAL)
@@ -211,7 +211,7 @@ void SolverFuzzingInLocalSpace::StateLocalSpace::update()
 }
 
 
-void SolverFuzzingInLocalSpace::StateLocalSpace::update(std::vector<Evaluation> const& output)
+void SolverImpl::StateLocalSpace::update(std::vector<Evaluation> const& output)
 {
     std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
     if (fn_idx >= output.size())
@@ -227,7 +227,7 @@ void SolverFuzzingInLocalSpace::StateLocalSpace::update(std::vector<Evaluation> 
 }
 
 
-SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateLocalSpace::transition() const
+SolverImpl::State SolverImpl::StateLocalSpace::transition() const
 {
     if (solver().matrix.cols() == 0ULL)
         return State::FAILURE;
@@ -237,7 +237,7 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateLocalSpace::tra
 }
 
 
-void SolverFuzzingInLocalSpace::StateConstraints::enter()
+void SolverImpl::StateConstraints::enter()
 {
     reset_gradient_computation();
     gradients.clear();
@@ -249,7 +249,7 @@ void SolverFuzzingInLocalSpace::StateConstraints::enter()
 }
 
 
-void SolverFuzzingInLocalSpace::StateConstraints::update()
+void SolverImpl::StateConstraints::update()
 {
     if (step_coeffs.empty())
     {
@@ -275,7 +275,7 @@ void SolverFuzzingInLocalSpace::StateConstraints::update()
 }
 
 
-void SolverFuzzingInLocalSpace::StateConstraints::update(std::vector<Evaluation> const& output)
+void SolverImpl::StateConstraints::update(std::vector<Evaluation> const& output)
 {
     for (auto it = partial_function_indices.begin(); it != partial_function_indices.end(); )
     {
@@ -298,7 +298,7 @@ void SolverFuzzingInLocalSpace::StateConstraints::update(std::vector<Evaluation>
 }
 
 
-SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateConstraints::transition() const
+SolverImpl::State SolverImpl::StateConstraints::transition() const
 {
     if (column_index < solver().matrix.cols())
         return solver().state;
@@ -306,14 +306,14 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateConstraints::tr
 }
 
 
-void SolverFuzzingInLocalSpace::StateGradient::enter()
+void SolverImpl::StateGradient::enter()
 {
     reset_gradient_computation();
     solver().gradient = Vector::Zero(solver().matrix.cols());
 }
 
 
-void SolverFuzzingInLocalSpace::StateGradient::update()
+void SolverImpl::StateGradient::update()
 {
     if (step_coeffs.empty())
         reset_for_next_partial();
@@ -326,7 +326,7 @@ void SolverFuzzingInLocalSpace::StateGradient::update()
 }
 
 
-void SolverFuzzingInLocalSpace::StateGradient::update(std::vector<Evaluation> const& output)
+void SolverImpl::StateGradient::update(std::vector<Evaluation> const& output)
 {
     std::size_t const fn_idx{ solver().constants.parameter_indices.size() - 1UL };
     if (fn_idx >= output.size())
@@ -342,7 +342,7 @@ void SolverFuzzingInLocalSpace::StateGradient::update(std::vector<Evaluation> co
 }
 
 
-SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient::transition() const
+SolverImpl::State SolverImpl::StateGradient::transition() const
 {
     if (column_index < solver().matrix.cols())
         return solver().state;
@@ -350,7 +350,7 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient::trans
 }
 
 
-void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::enter()
+void SolverImpl::StateFuzzingGradientDescent::enter()
 {
     if (solver().gradient.dot(solver().gradient) < 1e-9)
         multipliers.clear();
@@ -359,7 +359,7 @@ void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::enter()
 }
 
 
-void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::update()
+void SolverImpl::StateFuzzingGradientDescent::update()
 {
     if (multipliers.empty())
         return;
@@ -391,7 +391,7 @@ void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::update()
 }
 
 
-SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::transition() const
+SolverImpl::State SolverImpl::StateFuzzingGradientDescent::transition() const
 {
     if (!multipliers.empty())
         return solver().state;
@@ -399,7 +399,7 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateFuzzingGradient
 }
 
 
-void SolverFuzzingInLocalSpace::StateRoundEnd::enter()
+void SolverImpl::StateRoundEnd::enter()
 {
     if (!solver().best_io.input.empty())
     {
@@ -412,13 +412,13 @@ void SolverFuzzingInLocalSpace::StateRoundEnd::enter()
 }
 
 
-SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateRoundEnd::transition() const
+SolverImpl::State SolverImpl::StateRoundEnd::transition() const
 {
     return improved ? State::ROUND_BEGIN : State::FAILURE;
 }
 
 
-void SolverFuzzingInLocalSpace::update_matrix(Vector const& gradient)
+void SolverImpl::update_matrix(Vector const& gradient)
 {
     if (!valid(gradient) || gradient.norm() < 1e-9)
         return;
@@ -440,7 +440,7 @@ void SolverFuzzingInLocalSpace::update_matrix(Vector const& gradient)
 }
 
 
-Scalar SolverFuzzingInLocalSpace::epsilon_step_along_vector(Vector const& u) const
+Scalar SolverImpl::epsilon_step_along_vector(Vector const& u) const
 {
     Scalar epsilon{ 0.0 };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
@@ -456,7 +456,7 @@ Scalar SolverFuzzingInLocalSpace::epsilon_step_along_vector(Vector const& u) con
 }
 
 
-bool SolverFuzzingInLocalSpace::are_constraints_satisfied(Vector const& u) const
+bool SolverImpl::are_constraints_satisfied(Vector const& u) const
 {
     for (Constraint const& constraint : constraints)
     {
@@ -490,7 +490,7 @@ bool SolverFuzzingInLocalSpace::are_constraints_satisfied(Vector const& u) const
 }
 
 
-bool SolverFuzzingInLocalSpace::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
+bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
 {
     for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
     {
