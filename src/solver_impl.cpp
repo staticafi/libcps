@@ -8,25 +8,6 @@
 namespace cps {
 
 
-bool is_better_evaluation(Comparator const comparator, Scalar const current_valuation, Scalar const new_valuation)
-{
-    switch (comparator)
-    {
-        case Comparator::EQUAL:
-            return std::fabs(new_valuation) < std::fabs(current_valuation);
-        case Comparator::UNEQUAL:
-            return std::fabs(new_valuation) > std::fabs(current_valuation);
-        case Comparator::LESS:
-        case Comparator::LESS_EQUAL:
-            return new_valuation < current_valuation;
-        case Comparator::GREATER:
-        case Comparator::GREATER_EQUAL:
-            return new_valuation > current_valuation;
-        default: { UNREACHABLE(); } break;
-    }
-}
-
-
 SolverImpl::SolverImpl(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
@@ -126,6 +107,27 @@ void SolverImpl::process_output(std::vector<Evaluation> const& output_)
 
     if (output.size() == round_constants.seed_output.size())
     {
+        struct local
+        {
+            static bool is_better_evaluation(Comparator const comparator, Scalar const current_valuation, Scalar const new_valuation)
+            {
+                switch (comparator)
+                {
+                    case Comparator::EQUAL:
+                        return std::fabs(new_valuation) < std::fabs(current_valuation);
+                    case Comparator::UNEQUAL:
+                        return std::fabs(new_valuation) > std::fabs(current_valuation);
+                    case Comparator::LESS:
+                    case Comparator::LESS_EQUAL:
+                        return new_valuation < current_valuation;
+                    case Comparator::GREATER:
+                    case Comparator::GREATER_EQUAL:
+                        return new_valuation > current_valuation;
+                    default: { UNREACHABLE(); } break;
+                }
+            }
+        };
+
         std::size_t const last{ output.size() - 1ULL };
         if (output.at(last).predicate != round_constants.seed_output.at(last).predicate)
         {
@@ -134,9 +136,9 @@ void SolverImpl::process_output(std::vector<Evaluation> const& output_)
             best_io.output = output;
             return;
         }
-        else if (is_better_evaluation(constants.comparators.back(), round_constants.seed_output.at(last).function, output.at(last).function)
+        else if (local::is_better_evaluation(constants.comparators.back(), round_constants.seed_output.at(last).function, output.at(last).function)
                     && (best_io.input.empty() ||
-                        is_better_evaluation(constants.comparators.back(), best_io.output.at(last).function, output.at(last).function)))
+                        local::is_better_evaluation(constants.comparators.back(), best_io.output.at(last).function, output.at(last).function)))
         {
             best_io.input = best_io.candidate;
             best_io.output = output;
