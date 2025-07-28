@@ -51,6 +51,7 @@ private:
     {
         bool ready{ false };
         Vector vector{};
+        std::vector<Variable> input{};
     };
 
     struct Constraint
@@ -143,6 +144,27 @@ private:
         State transition() const override;
     };
 
+    struct StateFuzzingGradientDescent : public StateProcessor
+    {
+        explicit StateFuzzingGradientDescent(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        void enter() override;
+        void update() override;
+        State transition() const override;
+    private:
+        Scalar multiplier{};
+        std::vector<Scalar> multipliers{};
+    };
+
+    struct StateRoundEnd : public StateProcessor
+    {
+        explicit StateRoundEnd(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
+        void update(std::vector<Evaluation> const& output) override;
+        State transition() const override{ return State::ROUND_BEGIN; }
+    private:
+        Scalar multiplier{};
+        std::vector<Scalar> multipliers{};
+    };
+
     struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
     struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
@@ -161,6 +183,8 @@ private:
     StateLocalSpace state_local_space;
     StateConstraints state_constraints;
     StateGradient state_gradient;
+    StateFuzzingGradientDescent state_fuzzing_gradient_descent;
+    StateRoundEnd state_round_end;
     StateSuccess state_success;
     StateFailure state_failure;
     std::unordered_map<State, StateProcessor*> state_processors;

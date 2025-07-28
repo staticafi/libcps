@@ -25,6 +25,8 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     , state_local_space{ this }
     , state_constraints{ this }
     , state_gradient{ this }
+    , state_fuzzing_gradient_descent{ this }
+    , state_round_end{ this }
     , state_success{}
     , state_failure{}
     , state_processors{
@@ -32,6 +34,8 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
         { State::LOCAL_SPACE, &state_local_space },
         { State::CONSTRAINTS, &state_constraints },
         { State::GRADIENT, &state_gradient },
+        { State::FUZZING_GRADIENT_DESCENT, &state_fuzzing_gradient_descent },
+        { State::ROUND_END, &state_round_end },
         { State::SUCCESS, &state_success },
         { State::FAILURE, &state_failure },
     }
@@ -80,6 +84,7 @@ void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
             [i, &u](auto&& x) { x = cast<std::decay_t<decltype(x)> >(u(i)); },
             input.at(constants.active_variable_indices.at(i))
         );
+    sample.input = input;
 }
 
 
@@ -104,6 +109,30 @@ void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& ou
         std::size_t const last{ output.size() - 1ULL };
         if (output.at(last).predicate != round_constants.seed_output.at(last).predicate)
             state = State::SUCCESS;
+        else
+        {
+            bool improved;
+            switch (constants.comparators.back())
+            {
+                case Comparator::EQUAL:
+                    improved = std::fabs(output.at(last).function) < std::fabs(round_constants.seed_output.at(last).function);
+                    break;
+                case Comparator::UNEQUAL:
+                    improved = std::fabs(output.at(last).function) > std::fabs(round_constants.seed_output.at(last).function);
+                    break;
+                case Comparator::LESS:
+                case Comparator::LESS_EQUAL:
+                    improved = output.at(last).function < round_constants.seed_output.at(last).function;
+                    break;
+                case Comparator::GREATER:
+                case Comparator::GREATER_EQUAL:
+                    improved = output.at(last).function > round_constants.seed_output.at(last).function;
+                    break;
+                default: { UNREACHABLE(); } break;
+            }
+            if (improved)
+                state = State::ROUND_END;
+        }
     }
 
     state_processors.at(state)->update(output);
@@ -308,8 +337,61 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateGradient::trans
 {
     if (column_index < solver().matrix.cols())
         return solver().state;
+    return State::FUZZING_GRADIENT_DESCENT;
+}
+
+
+void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::enter()
+{
+    if (solver().gradient.dot(solver().gradient) < 1e-9)
+        multipliers.clear();
+    else
+        multipliers.assign({ 1000.0, 100.0, 10.0, 0.1, 0.01, 0.001, 1.0 });
+}
+
+
+void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::update()
+{
+    if (multipliers.empty())
+        return;
+
+    multiplier = multipliers.back();
+    multipliers.pop_back();
+
+    Scalar lambda;
+    {
+        lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
+        Scalar const epsilon = solver().epsilon_step_along_vector(solver().matrix * ((multiplier * lambda) * solver().gradient));
+        switch (solver().constants.comparators.back())
+        {
+            case Comparator::EQUAL: break;
+            case Comparator::UNEQUAL: lambda += epsilon; break;
+            case Comparator::LESS: lambda -= epsilon; break;
+            case Comparator::LESS_EQUAL: break;
+            case Comparator::GREATER: lambda += epsilon; break;
+            case Comparator::GREATER_EQUAL: break;
+            default: { UNREACHABLE(); } break;
+        }
+    }
+
+    solver().sample.vector = (multiplier * lambda) * solver().gradient;
+    solver().sample.ready = true;
+}
+
+
+SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::transition() const
+{
+    if (!multipliers.empty())
+        return solver().state;
     // TODO:
     return State::FAILURE;
+}
+
+
+void SolverFuzzingInLocalSpace::StateRoundEnd::update(std::vector<Evaluation> const& output)
+{
+    solver().round_constants.seed_input = solver().sample.input;
+    solver().round_constants.seed_output = output;
 }
 
 
