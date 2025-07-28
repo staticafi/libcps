@@ -51,7 +51,14 @@ private:
     {
         bool ready{ false };
         Vector vector{};
+    };
+
+    struct BestIO
+    {
+        void clear() { candidate.clear(); input.clear(); output.clear(); }
+        std::vector<Variable> candidate{};
         std::vector<Variable> input{};
+        std::vector<Evaluation> output{};
     };
 
     struct Constraint
@@ -158,8 +165,10 @@ private:
     struct StateRoundEnd : public StateProcessor
     {
         explicit StateRoundEnd(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
-        void update(std::vector<Evaluation> const& output) override;
-        State transition() const override{ return State::ROUND_BEGIN; }
+        void enter() override;
+        State transition() const override;
+    private:
+        bool improved{ false };
     };
 
     struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
@@ -174,6 +183,7 @@ private:
     Constants constants;
     RoundConstants round_constants;
     Sample sample;
+    BestIO best_io;
 
     State state;
     StateRoundBegin state_round_begin;

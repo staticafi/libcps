@@ -8,6 +8,25 @@
 namespace cps {
 
 
+bool is_better_evaluation(Comparator const comparator, Scalar const current_valuation, Scalar const new_valuation)
+{
+    switch (comparator)
+    {
+        case Comparator::EQUAL:
+            return std::fabs(new_valuation) < std::fabs(current_valuation);
+        case Comparator::UNEQUAL:
+            return std::fabs(new_valuation) > std::fabs(current_valuation);
+        case Comparator::LESS:
+        case Comparator::LESS_EQUAL:
+            return new_valuation < current_valuation;
+        case Comparator::GREATER:
+        case Comparator::GREATER_EQUAL:
+            return new_valuation > current_valuation;
+        default: { UNREACHABLE(); } break;
+    }
+}
+
+
 SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
@@ -20,6 +39,7 @@ SolverFuzzingInLocalSpace::SolverFuzzingInLocalSpace(
     , constants{ parameter_indices, comparators, {}, {} }
     , round_constants{ seed_input, seed_output }
     , sample{}
+    , best_io{}
     , state{ State::ROUND_BEGIN }
     , state_round_begin{ this }
     , state_local_space{ this }
@@ -84,7 +104,7 @@ void SolverFuzzingInLocalSpace::compute_next_input(std::vector<Variable>& input)
             [i, &u](auto&& x) { x = cast<std::decay_t<decltype(x)> >(u(i)); },
             input.at(constants.active_variable_indices.at(i))
         );
-    sample.input = input;
+    best_io.candidate = input;
 }
 
 
@@ -109,29 +129,12 @@ void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& ou
         std::size_t const last{ output.size() - 1ULL };
         if (output.at(last).predicate != round_constants.seed_output.at(last).predicate)
             state = State::SUCCESS;
-        else
+        else if (is_better_evaluation(constants.comparators.back(), round_constants.seed_output.at(last).function, output.at(last).function)
+                    && (best_io.input.empty() ||
+                        is_better_evaluation(constants.comparators.back(), best_io.output.at(last).function, output.at(last).function)))
         {
-            bool improved;
-            switch (constants.comparators.back())
-            {
-                case Comparator::EQUAL:
-                    improved = std::fabs(output.at(last).function) < std::fabs(round_constants.seed_output.at(last).function);
-                    break;
-                case Comparator::UNEQUAL:
-                    improved = std::fabs(output.at(last).function) > std::fabs(round_constants.seed_output.at(last).function);
-                    break;
-                case Comparator::LESS:
-                case Comparator::LESS_EQUAL:
-                    improved = output.at(last).function < round_constants.seed_output.at(last).function;
-                    break;
-                case Comparator::GREATER:
-                case Comparator::GREATER_EQUAL:
-                    improved = output.at(last).function > round_constants.seed_output.at(last).function;
-                    break;
-                default: { UNREACHABLE(); } break;
-            }
-            if (improved)
-                state = State::ROUND_END;
+            best_io.input = best_io.candidate;
+            best_io.output = output;
         }
     }
 
@@ -149,6 +152,7 @@ void SolverFuzzingInLocalSpace::StateRoundBegin::enter()
             solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i))
         );
     solver().matrix.setIdentity(n,n);
+    solver().best_io.clear();
 }
 
 
@@ -386,15 +390,26 @@ SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateFuzzingGradient
 {
     if (!multipliers.empty())
         return solver().state;
-    // TODO:
-    return State::FAILURE;
+    return State::ROUND_END;
 }
 
 
-void SolverFuzzingInLocalSpace::StateRoundEnd::update(std::vector<Evaluation> const& output)
+void SolverFuzzingInLocalSpace::StateRoundEnd::enter()
 {
-    solver().round_constants.seed_input = solver().sample.input;
-    solver().round_constants.seed_output = output;
+    if (!solver().best_io.input.empty())
+    {
+        solver().round_constants.seed_input = solver().best_io.input;
+        solver().round_constants.seed_output = solver().best_io.output;
+        improved = true;
+    }
+    else
+        improved = false;
+}
+
+
+SolverFuzzingInLocalSpace::State SolverFuzzingInLocalSpace::StateRoundEnd::transition() const
+{
+    return improved ? State::ROUND_BEGIN : State::FAILURE;
 }
 
 
