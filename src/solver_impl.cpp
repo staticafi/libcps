@@ -1,7 +1,7 @@
 #include <cps/solver_impl.hpp>
-#include <cps/active_indices.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
+#include <set>
 #include <limits>
 #include <type_traits>
 
@@ -46,7 +46,45 @@ SolverImpl::SolverImpl(
     , gradient{ Vector(0) }
 {
     if (config.build_local_space)
-        cps::compute_active_indices(constants.parameter_indices, constants.active_variable_indices, constants.active_function_indices);
+    {
+        std::set<std::size_t> variable_indices;
+        std::set<std::size_t> function_indices;
+        variable_indices.insert(constants.parameter_indices.back().begin(), constants.parameter_indices.back().end());
+        function_indices.insert(constants.parameter_indices.size() - 1ULL);
+        std::unordered_set<std::size_t>  work_set{};
+        for (std::size_t  i = 1UL; i < constants.parameter_indices.size(); ++i)
+            work_set.insert(i - 1UL);
+        while (true)
+        {
+            bool changed{ false };
+            for (auto it = work_set.begin(); it != work_set.end(); )
+            {
+                auto const& params{ constants.parameter_indices.at(*it) };
+                bool intersection{ false };
+                for (auto i : params)
+                    if (variable_indices.contains(i))
+                    {
+                        intersection = true;
+                        break;
+                    }
+                if (intersection)
+                {
+                    variable_indices.insert(params.begin(), params.end());
+                    function_indices.insert(*it);
+
+                    changed = true;
+
+                    it = work_set.erase(it);
+                }
+                else
+                    ++it;
+            }
+            if (changed == false)
+                break;
+        }
+        constants.active_variable_indices.assign(variable_indices.begin(), variable_indices.end());
+        constants.active_function_indices.assign(function_indices.begin(), function_indices.end());
+    }
     else
     {
         constants.active_variable_indices = constants.parameter_indices.back();
