@@ -374,7 +374,10 @@ void SolverFuzzingInLocalSpace::StateFuzzingGradientDescent::update()
         }
     }
 
-    solver().sample.vector = (multiplier * lambda) * solver().gradient;
+    Vector u{ (multiplier * lambda) * solver().gradient };
+    solver().clip_by_constraints(u);
+
+    solver().sample.vector = u;
     solver().sample.ready = true;
 }
 
