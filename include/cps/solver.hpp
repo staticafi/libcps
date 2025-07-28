@@ -26,6 +26,8 @@ struct Solver : public Component
 
     bool success() const override { return solver->success(); }
     bool failure() const override { return solver->failure(); }
+    std::vector<Variable> const& solution_input() const override { return solver->solution_input(); }
+    std::vector<Evaluation> const& solution_output() const override { return solver->solution_output(); }
     void compute_next_input(std::vector<Variable>& input) override { return solver->compute_next_input(input); }
     void process_output(std::vector<Evaluation> const& output) override { return solver->process_output(output); }
 

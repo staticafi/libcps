@@ -128,7 +128,12 @@ void SolverFuzzingInLocalSpace::process_output(std::vector<Evaluation> const& ou
     {
         std::size_t const last{ output.size() - 1ULL };
         if (output.at(last).predicate != round_constants.seed_output.at(last).predicate)
+        {
             state = State::SUCCESS;
+            best_io.input = best_io.candidate;
+            best_io.output = output;
+            return;
+        }
         else if (is_better_evaluation(constants.comparators.back(), round_constants.seed_output.at(last).function, output.at(last).function)
                     && (best_io.input.empty() ||
                         is_better_evaluation(constants.comparators.back(), best_io.output.at(last).function, output.at(last).function)))

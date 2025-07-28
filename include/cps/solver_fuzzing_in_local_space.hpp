@@ -28,6 +28,9 @@ struct SolverFuzzingInLocalSpace : public Component
     bool success() const override { return state == State::SUCCESS; }
     bool failure() const override { return state == State::FAILURE; }
 
+    std::vector<Variable> const& solution_input() const override { return best_io.input; }
+    std::vector<Evaluation> const& solution_output() const override { return best_io.output; }
+
     void compute_next_input(std::vector<Variable>& input) override;
     void process_output(std::vector<Evaluation> const& output_) override;
 
