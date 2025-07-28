@@ -160,9 +160,6 @@ private:
         explicit StateRoundEnd(SolverFuzzingInLocalSpace* const solver) : StateProcessor{ solver } {}
         void update(std::vector<Evaluation> const& output) override;
         State transition() const override{ return State::ROUND_BEGIN; }
-    private:
-        Scalar multiplier{};
-        std::vector<Scalar> multipliers{};
     };
 
     struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
