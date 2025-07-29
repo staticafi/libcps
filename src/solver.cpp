@@ -35,7 +35,8 @@ bool solve(
     std::vector<Variable> const& seed_input,
     std::vector<Evaluation> const& seed_output,
     std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
-    Config const& config
+    Config const& config,
+    Statistics* statistics
     )
 {
     std::vector<bool> predicates;
@@ -54,6 +55,10 @@ bool solve(
 
         solver.process_output(solution_output);
     }
+
+    if (statistics != nullptr)
+        *statistics = solver.get_statistics();
+
     return solver.success();
 }
 

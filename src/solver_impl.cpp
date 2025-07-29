@@ -44,6 +44,7 @@ SolverImpl::SolverImpl(
     , matrix{ Matrix(0,0) }
     , constraints{}
     , gradient{ Vector(0) }
+    , statistics{}
 {
     if (config.build_local_space)
     {
@@ -124,6 +125,8 @@ void SolverImpl::compute_next_input(std::vector<Variable>& input)
             input.at(constants.active_variable_indices.at(i))
         );
     best_io.candidate = input;
+
+    ++statistics.insert({ to_string(state), 0ULL }).first->second;
 }
 
 
@@ -593,6 +596,23 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             return true;
     }
     return false;
+}
+
+
+char const* SolverImpl::to_string(State const state)
+{
+    switch (state)
+    {
+        case State::ROUND_BEGIN: return "ROUND_BEGIN";
+        case State::LOCAL_SPACE: return "LOCAL_SPACE";
+        case State::CONSTRAINTS: return "CONSTRAINTS";
+        case State::GRADIENT: return "GRADIENT";
+        case State::FUZZING_GRADIENT_DESCENT: return "FUZZING_GRADIENT_DESCENT";
+        case State::ROUND_END: return "ROUND_END";
+        case State::SUCCESS: return "SUCCESS";
+        case State::FAILURE: return "FAILURE";
+        default: { UNREACHABLE(); return ""; }
+    }    
 }
 
 

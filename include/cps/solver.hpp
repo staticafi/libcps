@@ -6,6 +6,7 @@
 #   include <cps/comparator.hpp>
 #   include <cps/component.hpp>
 #   include <cps/config.hpp>
+#   include <cps/statistics.hpp>
 #   include <vector>
 #   include <functional>
 #   include <memory>
@@ -31,6 +32,8 @@ struct Solver : public Component
     void compute_next_input(std::vector<Variable>& input) override { return solver->compute_next_input(input); }
     void process_output(std::vector<Evaluation> const& output) override { return solver->process_output(output); }
 
+    Statistics const& get_statistics() const override { return solver->get_statistics(); }
+
 private:
     std::unique_ptr<Component> solver;
 };
@@ -44,7 +47,8 @@ bool solve(
     std::vector<Variable> const& seed_input,
     std::vector<Evaluation> const& seed_output,
     std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
-    Config const& config = Config{}
+    Config const& config = Config{},
+    Statistics* statistics = nullptr
     );
 
 

@@ -7,6 +7,7 @@
 #   include <cps/component.hpp>
 #   include <cps/config.hpp>
 #   include <cps/math.hpp>
+#   include <cps/statistics.hpp>
 #   include <vector>
 #   include <unordered_set>
 #   include <unordered_map>
@@ -33,6 +34,8 @@ struct SolverImpl : public Component
 
     void compute_next_input(std::vector<Variable>& input) override;
     void process_output(std::vector<Evaluation> const& output_) override;
+
+    Statistics const& get_statistics() const override { return statistics; }
 
 private:
 
@@ -85,6 +88,7 @@ private:
         SUCCESS,
         FAILURE,
     };
+    static char const* to_string(State);
 
     struct StateProcessor
     {
@@ -203,6 +207,8 @@ private:
     Matrix matrix;
     std::vector<Constraint> constraints;
     Vector gradient;
+
+    Statistics statistics;
 };
 
 

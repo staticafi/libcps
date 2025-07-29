@@ -3,6 +3,7 @@
 
 #   include <cps/variable.hpp>
 #   include <cps/evaluation.hpp>
+#   include <cps/statistics.hpp>
 #   include <vector>
 
 namespace cps {
@@ -18,6 +19,7 @@ struct Component
     virtual std::vector<Evaluation> const& solution_output() const = 0;
     virtual void compute_next_input(std::vector<Variable>& input) = 0;
     virtual void process_output(std::vector<Evaluation> const& output) = 0;
+    virtual Statistics const& get_statistics() const = 0;
 };
 
 
