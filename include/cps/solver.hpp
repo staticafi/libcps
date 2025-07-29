@@ -4,7 +4,6 @@
 #   include <cps/variable.hpp>
 #   include <cps/evaluation.hpp>
 #   include <cps/comparator.hpp>
-#   include <cps/component.hpp>
 #   include <cps/config.hpp>
 #   include <cps/statistics.hpp>
 #   include <vector>
@@ -15,7 +14,10 @@
 namespace cps {
 
 
-struct Solver : public Component
+struct SolverImpl;
+
+
+struct Solver
 {
     Solver(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
@@ -25,17 +27,20 @@ struct Solver : public Component
         Config const& config = Config{}
     );
 
-    bool success() const override { return solver->success(); }
-    bool failure() const override { return solver->failure(); }
-    std::vector<Variable> const& solution_input() const override { return solver->solution_input(); }
-    std::vector<Evaluation> const& solution_output() const override { return solver->solution_output(); }
-    void compute_next_input(std::vector<Variable>& input) override { return solver->compute_next_input(input); }
-    void process_output(std::vector<Evaluation> const& output) override { return solver->process_output(output); }
+    bool is_finished() const;
+    bool success() const;
+    bool failure() const;
 
-    Statistics const& get_statistics() const override { return solver->get_statistics(); }
+    std::vector<Variable> const& solution_input() const;
+    std::vector<Evaluation> const& solution_output() const;
+
+    void compute_next_input(std::vector<Variable>& input);
+    void process_output(std::vector<Evaluation> const& output);
+
+    Statistics const& get_statistics() const;
 
 private:
-    std::unique_ptr<Component> solver;
+    std::unique_ptr<SolverImpl> solver;
 };
 
 

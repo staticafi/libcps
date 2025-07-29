@@ -13,8 +13,7 @@ Solver::Solver(
         std::vector<Evaluation> const& seed_output,
         Config const& config
         )
-    : Component{}
-    , solver{ nullptr }
+    : solver{ nullptr }
 {
     ASSUMPTION(
         !parameter_indices.back().empty() &&
@@ -25,6 +24,18 @@ Solver::Solver(
     );
     solver = std::make_unique<SolverImpl>(parameter_indices, comparators, seed_input, seed_output, config);
 }
+
+
+bool Solver::is_finished() const { return solver->is_finished(); }
+bool Solver::success() const { return solver->success(); }
+bool Solver::failure() const { return solver->failure(); }
+
+std::vector<Variable> const& Solver::solution_input() const { return solver->solution_input(); }
+std::vector<Evaluation> const& Solver::solution_output() const { return solver->solution_output(); }
+
+void Solver::compute_next_input(std::vector<Variable>& input) { return solver->compute_next_input(input); }
+void Solver::process_output(std::vector<Evaluation> const& output) { return solver->process_output(output); }
+Statistics const& Solver::get_statistics() const { return solver->get_statistics(); }
 
 
 bool solve(

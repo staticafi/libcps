@@ -15,8 +15,7 @@ SolverImpl::SolverImpl(
         std::vector<Evaluation> const& seed_output,
         Config const& config_
         )
-    : Component{}
-    , config{ config_ }
+    : config{ config_ }
     , constants{ parameter_indices, comparators, {}, {} }
     , round_constants{ seed_input, seed_output }
     , sample{}
