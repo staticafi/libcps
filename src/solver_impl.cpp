@@ -465,7 +465,7 @@ void SolverImpl::update_matrix(Vector const& gradient)
     if (!valid(gradient) || gradient.norm() < 1e-9)
         return;
     Vector const g{ gradient.normalized() };
-    Matrix M(matrix.rows(), 0);
+    Matrix M(matrix.cols(), 0);
     for (std::size_t i{ 0ULL }; i < matrix.cols(); ++i)
     {
         Vector w{ Vector::Unit(matrix.cols(), i) };
@@ -475,10 +475,10 @@ void SolverImpl::update_matrix(Vector const& gradient)
         if (valid(w) && w.norm() >= 1e-9)
         {
             M.conservativeResize(Eigen::NoChange, M.cols() + 1);
-            M.col(M.cols() - 1) = (matrix * w).normalized();
+            M.col(M.cols() - 1) = w.normalized();
         }
     }
-    matrix = M;
+    matrix = matrix * M;
 }
 
 
