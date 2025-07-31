@@ -119,10 +119,9 @@ void SolverImpl::compute_next_input(std::vector<Variable>& input)
 
     Vector const u{ origin + matrix * sample.vector };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        std::visit(
-            [i, &u](auto&& x) { x = cast<std::decay_t<decltype(x)> >(u(i)); },
-            input.at(constants.active_variable_indices.at(i))
-        );
+        input.at(constants.active_variable_indices.at(i)).visit( [i, &u](auto&& x) {
+            x = cast<std::decay_t<decltype(x)> >(u(i));
+        });
     best_io.candidate = input;
 
     ++statistics.insert({ to_string(state), 0ULL }).first->second;
@@ -194,10 +193,9 @@ void SolverImpl::StateRoundBegin::enter()
     std::size_t const n{ solver().constants.active_variable_indices.size() };
     solver().origin.resize(n);
     for (std::size_t i{ 0ULL }; i != n; ++i)
-        std::visit(
-            [i, this](auto x) { solver().origin(i) = (double)x; },
-            solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i))
-        );
+        solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i)).visit( [i, this](auto x) {
+            solver().origin(i) = (double)x;
+        });
     solver().matrix.setIdentity(n,n);
     solver().best_io.clear();
 }
@@ -486,14 +484,11 @@ Scalar SolverImpl::epsilon_step_along_vector(Vector const& u) const
 {
     Scalar epsilon{ 0.0 };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        std::visit(
-            [i, &u, &epsilon](auto const x) {
-                Scalar const delta{ epsilon_step(x, u(i)) };
-                if (valid(delta) && delta > epsilon)
-                    epsilon = delta;
-            },
-            round_constants.seed_input.at(constants.active_variable_indices.at(i))
-        );
+        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit( [i, &u, &epsilon](auto const x) {
+            Scalar const delta{ epsilon_step(x, u(i)) };
+            if (valid(delta) && delta > epsilon)
+                epsilon = delta;
+        });
     return epsilon;
 }
 
