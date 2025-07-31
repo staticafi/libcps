@@ -107,14 +107,14 @@ void SolverImpl::compute_next_input(std::vector<Variable>& input)
     {
         if (is_finished())
             return;
-        auto& processor{ state_processors.at(state) };
-        processor->update();
-        State const next_state{ processor->transition() };
+        State const next_state{ state_processors.at(state)->transition() };
         if (next_state != state)
         {
             state = next_state;
             state_processors.at(state)->enter();
         }
+        else
+            state_processors.at(state)->update();
     }
 
     Vector const u{ origin + matrix * sample.vector };
