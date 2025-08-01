@@ -282,7 +282,7 @@ void SolverImpl::StateConstraints::enter()
     reset_gradient_computation();
     gradients.clear();
     for (std::size_t i : solver().constants.active_function_indices)
-        if (solver().constants.comparators.at(i) != Comparator::EQUAL)
+        if (i + 1ULL < solver().constants.comparators.size() && solver().constants.comparators.at(i) != Comparator::EQUAL)
             gradients.insert({ i, Vector::Zero(solver().matrix.cols()) });
     for (auto const& index_and_grad : gradients)
         partial_function_indices.insert(index_and_grad.first);
