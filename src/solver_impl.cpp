@@ -273,7 +273,7 @@ SolverImpl::State SolverImpl::StateLocalSpace::transition() const
         return State::FAILURE;
     if (active_function_index < solver().constants.active_function_indices.size() - 1ULL)
         return solver().state;
-    return State::CONSTRAINTS;
+    return solver().config.build_constraints ? State::CONSTRAINTS : State::GRADIENT;
 }
 
 
