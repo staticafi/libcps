@@ -269,11 +269,13 @@ void SolverImpl::StateLocalSpace::update(std::vector<Evaluation> const& output)
 
 SolverImpl::State SolverImpl::StateLocalSpace::transition() const
 {
+    if (!solver().config.build_local_space)
+        return State::CONSTRAINTS;
     if (solver().matrix.cols() == 0ULL)
         return State::FAILURE;
     if (active_function_index < solver().constants.active_function_indices.size() - 1ULL)
         return solver().state;
-    return solver().config.build_constraints ? State::CONSTRAINTS : State::GRADIENT;
+    return State::CONSTRAINTS;
 }
 
 
@@ -340,6 +342,8 @@ void SolverImpl::StateConstraints::update(std::vector<Evaluation> const& output)
 
 SolverImpl::State SolverImpl::StateConstraints::transition() const
 {
+    if (!solver().config.build_constraints)
+        return State::GRADIENT;
     if (column_index < solver().matrix.cols())
         return solver().state;
     return State::GRADIENT;
@@ -433,6 +437,8 @@ void SolverImpl::StateFuzzingGradientDescent::update()
 
 SolverImpl::State SolverImpl::StateFuzzingGradientDescent::transition() const
 {
+    if (!solver().config.use_gradient_descent)
+        return State::ROUND_END;
     if (!multipliers.empty())
         return solver().state;
     return State::ROUND_END;
