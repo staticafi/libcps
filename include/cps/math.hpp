@@ -18,7 +18,7 @@ inline bool valid(Vector const& u) { return valid(u.dot(u)); }
 
 
 template<typename R>
-inline R cast(Scalar value)
+R cast(Scalar value)
 {
     if constexpr (std::is_same<R, float>::value == false && std::is_same<R, double>::value == false)
     {
@@ -43,7 +43,7 @@ inline R cast(Scalar value)
 
 
 template<typename T>
-inline Scalar epsilon_around(T const x)
+Scalar epsilon_around(T const x)
 {
     using Type = std::decay_t<T>;
     static_assert(std::is_same<Type, float>::value || std::is_same<Type, double>::value);
