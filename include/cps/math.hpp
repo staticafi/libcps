@@ -30,7 +30,7 @@ R cast(Scalar value)
             value = std::numeric_limits<Scalar>::max();
     }
 
-    if constexpr (std::numeric_limits<R>::is_integer)
+    if constexpr (std::is_integral<R>::value)
         value = std::round(value);
 
     if (value <= (Scalar)std::numeric_limits<R>::lowest())
