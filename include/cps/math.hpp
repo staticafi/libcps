@@ -53,15 +53,13 @@ Scalar epsilon_around(T const x)
 }
 
 
-template<typename T>
-inline Scalar epsilon_step(T const x, Scalar const dx)
-{
-    using Type = std::decay_t<T>;
-    if constexpr (std::numeric_limits<Type>::is_integer)
-        return 1.0 / std::fabs(dx);
-    else
-        return epsilon_around(x);
-}
+Scalar real_epsilon_step_along_vector(Vector const& v);
+Scalar integral_epsilon_step_along_vector(
+    Vector const& v,
+    std::uint16_t num_steps_per_unit = 2U,
+    std::uint16_t max_steps = 1000U,
+    Scalar epsilon = 1e-6f
+    );
 
 
 }

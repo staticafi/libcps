@@ -488,14 +488,26 @@ void SolverImpl::update_matrix(Vector const& gradient)
 
 Scalar SolverImpl::epsilon_step_along_vector(Vector const& u) const
 {
-    Scalar epsilon{ 0.0 };
+    Scalar best_step{ 0.0 };
+    Vector v(0);
+    Vector w(0);
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit( [i, &u, &epsilon](auto const x) {
-            Scalar const delta{ epsilon_step(x, u(i)) };
-            if (valid(delta) && delta > epsilon)
-                epsilon = delta;
+        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([i, &u, &v, &w]<typename T>(T const x) {
+            if constexpr (std::is_integral<std::decay_t<T> >::value)
+            {
+                v.conservativeResize(v.size() + 1);
+                v(v.size() - 1) = u(i);
+            }
+            else
+            {
+                w.conservativeResize(w.size() + 1);
+                w(w.size() - 1) = x;
+            }
         });
-    return epsilon;
+    for (Scalar step : { integral_epsilon_step_along_vector(v), real_epsilon_step_along_vector(w) })
+        if (step > best_step)
+            best_step = step;
+    return best_step;
 }
 
 
