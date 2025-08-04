@@ -7,6 +7,7 @@
 #   include <cps/config.hpp>
 #   include <cps/math.hpp>
 #   include <cps/statistics.hpp>
+#   include <utility/random.hpp>
 #   include <vector>
 #   include <unordered_set>
 #   include <unordered_map>
@@ -185,6 +186,14 @@ private:
         void update() override;
         State transition() const override;
     private:
+        struct CubeInfo
+        {
+            Vector center;
+            std::size_t num_remaining;
+        };
+        Scalar cube_half_size{ 0.0 };
+        std::vector<CubeInfo> cubes{};
+        random_generator_for_natural_64_bit generator{ 1ULL };
     };
 
     struct StateRoundEnd : public StateProcessor

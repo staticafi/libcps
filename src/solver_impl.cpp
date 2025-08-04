@@ -469,11 +469,44 @@ SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
 
 void SolverImpl::StateFuzzingRandom::enter()
 {
+    cube_half_size = 1.0 * (std::log(std::fabs(solver().round_constants.seed_output.back().function) + 1.0) + 1.0);
+    cubes.clear();
+    if (solver().gradient.dot(solver().gradient) > 1e-9)
+    {
+        for (auto multiplier : { 1000.0, 100.0, 10.0, 0.1, 0.01, 0.001, 1.0 })
+        {
+            Scalar const lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
+            cubes.push_back({ .center = (multiplier * lambda) * solver().gradient, .num_remaining = 50ULL });
+        }
+        cubes.back().num_remaining += 50U;
+    }
+    cubes.assign({{ .center = Vector::Zero(solver().matrix.cols()), .num_remaining = 100ULL }});
 }
 
 
 void SolverImpl::StateFuzzingRandom::update()
 {
+    if (cubes.empty())
+        return;
+    if (cubes.back().num_remaining == 0ULL)
+    {
+        cubes.pop_back();
+        return;
+    }
+
+    --cubes.back().num_remaining;
+
+    Vector u{ cubes.back().center };
+    for (std::size_t i{ 0ULL}; i != u.size(); ++i)
+    {
+        Scalar const sign{ get_random_natural_64_bit_in_range(0ULL, 100ULL, generator) < 50ULL ? -1.0 : 1.0 };
+        Scalar const magnitude{ get_random_float_64_bit_in_range(0.0, cube_half_size, generator) };
+        u(i) += sign * magnitude;
+    }
+    solver().clip_by_constraints(u);
+
+    solver().sample.vector = u;
+    solver().sample.ready = true;
 }
 
 
@@ -481,7 +514,9 @@ SolverImpl::State SolverImpl::StateFuzzingRandom::transition() const
 {
     if (!solver().config.use_random_fuzzing)
         return State::ROUND_END;
-    return State::ROUND_END;
+    if (cubes.empty())
+        return State::ROUND_END;
+    return State::FUZZING_RANDOM;
 }
 
 
