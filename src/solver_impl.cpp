@@ -660,6 +660,8 @@ char const* SolverImpl::to_string(State const state)
         case State::CONSTRAINTS: return "CONSTRAINTS";
         case State::GRADIENT: return "GRADIENT";
         case State::FUZZING_GRADIENT_DESCENT: return "FUZZING_GRADIENT_DESCENT";
+        case State::FUZZING_BIT_FLIPS: return "FUZZING_BIT_FLIPS";
+        case State::FUZZING_RANDOM: return "FUZZING_RANDOM";
         case State::ROUND_END: return "ROUND_END";
         case State::SUCCESS: return "SUCCESS";
         case State::FAILURE: return "FAILURE";
