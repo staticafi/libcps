@@ -30,8 +30,8 @@ bool Solver::is_finished() const { return solver->is_finished(); }
 bool Solver::success() const { return solver->success(); }
 bool Solver::failure() const { return solver->failure(); }
 
-std::vector<Variable> const& Solver::solution_input() const { return solver->solution_input(); }
-std::vector<Evaluation> const& Solver::solution_output() const { return solver->solution_output(); }
+std::vector<Variable> const& Solver::best_input() const { return solver->best_input(); }
+std::vector<Evaluation> const& Solver::best_output() const { return solver->best_output(); }
 
 void Solver::compute_next_input(std::vector<Variable>& input) { return solver->compute_next_input(input); }
 void Solver::process_output(std::vector<Evaluation> const& output) { return solver->process_output(output); }
@@ -39,8 +39,8 @@ Statistics const& Solver::get_statistics() const { return solver->get_statistics
 
 
 bool solve(
-    std::vector<Variable>& solution_input,
-    std::vector<Evaluation>& solution_output,
+    std::vector<Variable>& best_input,
+    std::vector<Evaluation>& best_output,
     std::vector<std::vector<std::size_t> > const& parameter_indices,
     std::vector<Comparator> const& comparators,
     std::vector<Variable> const& seed_input,
@@ -58,14 +58,17 @@ bool solve(
     Solver solver{ parameter_indices, comparators, seed_input, seed_output, config };
     while (!solver.is_finished())
     {
-        solution_input.clear();
-        solver.compute_next_input(solution_input);
+        best_input.clear();
+        solver.compute_next_input(best_input);
 
-        solution_output.clear();
-        evaluator(solution_input, predicates, solution_output);
+        best_output.clear();
+        evaluator(best_input, predicates, best_output);
 
-        solver.process_output(solution_output);
+        solver.process_output(best_output);
     }
+
+    best_input = solver.best_input();
+    best_output = solver.best_output();
 
     if (statistics != nullptr)
         *statistics = solver.get_statistics();

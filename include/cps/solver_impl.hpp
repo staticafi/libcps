@@ -30,8 +30,8 @@ struct SolverImpl
     bool success() const { return state == State::SUCCESS; }
     bool failure() const { return state == State::FAILURE; }
 
-    std::vector<Variable> const& solution_input() const { return best_io.input; }
-    std::vector<Evaluation> const& solution_output() const { return best_io.output; }
+    std::vector<Variable> const& best_input() const { return success() ? best_io.input : round_constants.seed_input; }
+    std::vector<Evaluation> const& best_output() const { return success() ? best_io.output : round_constants.seed_output; }
 
     void compute_next_input(std::vector<Variable>& input);
     void process_output(std::vector<Evaluation> const& output_);

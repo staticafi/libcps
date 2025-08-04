@@ -31,8 +31,8 @@ struct Solver
     bool success() const;
     bool failure() const;
 
-    std::vector<Variable> const& solution_input() const;
-    std::vector<Evaluation> const& solution_output() const;
+    std::vector<Variable> const& best_input() const;
+    std::vector<Evaluation> const& best_output() const;
 
     void compute_next_input(std::vector<Variable>& input);
     void process_output(std::vector<Evaluation> const& output);
@@ -45,8 +45,8 @@ private:
 
 
 bool solve(
-    std::vector<Variable>& solution_input,
-    std::vector<Evaluation>& solution_output,
+    std::vector<Variable>& best_input,
+    std::vector<Evaluation>& best_output,
     std::vector<std::vector<std::size_t> > const& parameter_indices,
     std::vector<Comparator> const& comparators,
     std::vector<Variable> const& seed_input,
