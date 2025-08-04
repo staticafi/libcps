@@ -26,6 +26,8 @@ SolverImpl::SolverImpl(
     , state_constraints{ this }
     , state_gradient{ this }
     , state_fuzzing_gradient_descent{ this }
+    , state_fuzzing_bit_flips{ this }
+    , state_fuzzing_random{ this }
     , state_round_end{ this }
     , state_success{}
     , state_failure{}
@@ -35,6 +37,8 @@ SolverImpl::SolverImpl(
         { State::CONSTRAINTS, &state_constraints },
         { State::GRADIENT, &state_gradient },
         { State::FUZZING_GRADIENT_DESCENT, &state_fuzzing_gradient_descent },
+        { State::FUZZING_BIT_FLIPS, &state_fuzzing_bit_flips },
+        { State::FUZZING_RANDOM, &state_fuzzing_random },
         { State::ROUND_END, &state_round_end },
         { State::SUCCESS, &state_success },
         { State::FAILURE, &state_failure },
@@ -438,9 +442,45 @@ void SolverImpl::StateFuzzingGradientDescent::update()
 SolverImpl::State SolverImpl::StateFuzzingGradientDescent::transition() const
 {
     if (!solver().config.use_gradient_descent)
-        return State::ROUND_END;
+        return State::FUZZING_BIT_FLIPS;
     if (!multipliers.empty())
         return solver().state;
+    return State::FUZZING_BIT_FLIPS;
+}
+
+
+void SolverImpl::StateFuzzingBitFlips::enter()
+{
+}
+
+
+void SolverImpl::StateFuzzingBitFlips::update()
+{
+}
+
+
+SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
+{
+    if (!solver().config.use_bit_flips)
+        return State::FUZZING_RANDOM;
+    return State::FUZZING_RANDOM;
+}
+
+
+void SolverImpl::StateFuzzingRandom::enter()
+{
+}
+
+
+void SolverImpl::StateFuzzingRandom::update()
+{
+}
+
+
+SolverImpl::State SolverImpl::StateFuzzingRandom::transition() const
+{
+    if (!solver().config.use_random_fuzzing)
+        return State::ROUND_END;
     return State::ROUND_END;
 }
 

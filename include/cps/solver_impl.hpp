@@ -81,8 +81,8 @@ private:
         CONSTRAINTS,
         GRADIENT,
         FUZZING_GRADIENT_DESCENT,
-        FUZZING_BIT_MUTATIONS,
-        FUZZING_RANDOM_MUTATIONS,
+        FUZZING_BIT_FLIPS,
+        FUZZING_RANDOM,
         ROUND_END,
 
         SUCCESS,
@@ -169,6 +169,24 @@ private:
         std::vector<Scalar> multipliers{};
     };
 
+    struct StateFuzzingBitFlips : public StateProcessor
+    {
+        explicit StateFuzzingBitFlips(SolverImpl* const solver) : StateProcessor{ solver } {}
+        void enter() override;
+        void update() override;
+        State transition() const override;
+    private:
+    };
+
+    struct StateFuzzingRandom : public StateProcessor
+    {
+        explicit StateFuzzingRandom(SolverImpl* const solver) : StateProcessor{ solver } {}
+        void enter() override;
+        void update() override;
+        State transition() const override;
+    private:
+    };
+
     struct StateRoundEnd : public StateProcessor
     {
         explicit StateRoundEnd(SolverImpl* const solver) : StateProcessor{ solver } {}
@@ -198,6 +216,8 @@ private:
     StateConstraints state_constraints;
     StateGradient state_gradient;
     StateFuzzingGradientDescent state_fuzzing_gradient_descent;
+    StateFuzzingBitFlips state_fuzzing_bit_flips;
+    StateFuzzingRandom state_fuzzing_random;
     StateRoundEnd state_round_end;
     StateSuccess state_success;
     StateFailure state_failure;
