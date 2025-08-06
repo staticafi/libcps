@@ -3,19 +3,6 @@
 namespace cps {
 
 
-Scalar real_epsilon_step_along_vector(Vector const& v)
-{
-    Scalar best_step{ 0.0 };
-    for (std::size_t i{ 0ULL }; i != v.size(); ++i)
-    {
-        Scalar const step{ epsilon_around(v(i)) };
-        if (step > best_step)
-            best_step = step;
-    }
-    return best_step;
-}
-
-
 Scalar integral_epsilon_step_along_vector(
     Vector const& v,
     std::uint16_t const num_steps_per_unit,

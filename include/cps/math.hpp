@@ -43,17 +43,30 @@ R cast(Scalar value)
 
 
 template<typename T>
-Scalar epsilon_around(T const x)
+Scalar epsilon_around(Scalar const x)
 {
-    using Type = std::decay_t<T>;
-    static_assert(std::is_same<Type, float>::value || std::is_same<Type, double>::value);
+    static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value);
     int x_exponent;
     std::frexp(x, &x_exponent);
-    return std::pow(2.0, x_exponent - (std::numeric_limits<Type>::digits >> 2));
+    return std::pow(2.0, x_exponent - (std::numeric_limits<T>::digits >> 1));
 }
 
 
-Scalar real_epsilon_step_along_vector(Vector const& v);
+template<typename T>
+Scalar real_epsilon_step_along_vector(Vector const& v)
+{
+    static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value);
+    Scalar best_step{ 0.0 };
+    for (std::size_t i{ 0ULL }; i != v.size(); ++i)
+    {
+        Scalar const step{ epsilon_around<T>(v(i)) };
+        if (step > best_step)
+            best_step = step;
+    }
+    return best_step;
+}
+
+
 Scalar integral_epsilon_step_along_vector(
     Vector const& v,
     std::uint16_t num_steps_per_unit = 2U,

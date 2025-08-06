@@ -564,22 +564,24 @@ void SolverImpl::update_matrix(Vector const& gradient)
 Scalar SolverImpl::epsilon_step_along_vector(Vector const& u) const
 {
     Scalar best_step{ 0.0 };
-    Vector v(0);
-    Vector w(0);
+    Vector I(0);
+    Vector F(0);
+    Vector D(0);
+    auto const& append = [](Vector& w, Scalar const value) { w.conservativeResize(w.size() + 1); w(w.size() - 1) = value; }; 
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([i, &u, &v, &w]<typename T>(T const x) {
+        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([i, &u, &append, &I, &F, &D]<typename T>(T const x) {
             if constexpr (std::is_integral<std::decay_t<T> >::value)
-            {
-                v.conservativeResize(v.size() + 1);
-                v(v.size() - 1) = u(i);
-            }
+                append(I, u(i));
+            else if constexpr (std::is_same<std::decay_t<T>, float>::value)
+                append(F, x);
             else
-            {
-                w.conservativeResize(w.size() + 1);
-                w(w.size() - 1) = x;
-            }
+                append(D, x);
         });
-    for (Scalar step : { integral_epsilon_step_along_vector(v), real_epsilon_step_along_vector(w) })
+    for (Scalar step : {
+            integral_epsilon_step_along_vector(I),
+            real_epsilon_step_along_vector<float>(F),
+            real_epsilon_step_along_vector<double>(D),
+            })
         if (step > best_step)
             best_step = step;
     return best_step;
@@ -638,7 +640,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             if (!valid(signed_distance))
                 return false;
 
-            Scalar const epsilon{ epsilon_around(signed_distance) };
+            Scalar const epsilon{ epsilon_around<Scalar>(signed_distance) };
             switch (constraint.comparator)
             {
                 case Comparator::UNEQUAL:
