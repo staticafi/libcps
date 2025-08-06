@@ -11,6 +11,7 @@
 #   include <vector>
 #   include <unordered_set>
 #   include <unordered_map>
+#   include <map>
 #   include <memory>
 
 namespace cps {
@@ -146,7 +147,7 @@ private:
         void update(std::vector<Evaluation> const& output) override;
         State transition() const override;
     private:
-        std::unordered_map<std::size_t, Vector> gradients{};
+        std::map<std::size_t, Vector> gradients{};
         std::unordered_set<std::size_t> partial_function_indices{};
     };
 
