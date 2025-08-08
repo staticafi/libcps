@@ -451,11 +451,63 @@ SolverImpl::State SolverImpl::StateFuzzingGradientDescent::transition() const
 
 void SolverImpl::StateFuzzingBitFlips::enter()
 {
+    var = 0ULL;
+    bit = 0ULL;
 }
 
 
 void SolverImpl::StateFuzzingBitFlips::update()
 {
+    if (var == solver().constants.active_variable_indices.size())
+        return;
+
+    std::size_t const var_idx{ solver().constants.active_variable_indices.at(var) };
+    Variable const& var_ref{ solver().round_constants.seed_input.at(var_idx) };
+
+    std::size_t num_bits;
+    var_ref.visit([&num_bits]<typename T>(T) { num_bits = std::is_integral<std::decay_t<T> >::value ? 8ULL * sizeof(T) : 0ULL; });
+
+    if (bit == num_bits)
+    {
+        ++var;
+        return;
+    }
+
+    Vector u(0);
+    {
+        Vector n = Vector::Unit(solver().matrix.rows(), var_idx);
+        Vector W = n.transpose() * solver().matrix;
+        Vector w = solver().matrix * W;
+
+        // plane: n*(X-(solver().origin + s*n)) = 0  // s is computed later.
+        // line : X=solver().origin + t*w
+        // -----------------------------------------------
+        // n*(solver().origin + t*w - (solver().origin + s*n)) = 0
+        // n*(t*w - s*n) = 0
+        // t = s/n*w
+
+        Scalar const nw{ n.dot(w) };
+        if (std::fabs(nw) > 1e-6)
+        {
+            Scalar s;
+            var_ref.visit([this, &s]<typename T>(T const x) {
+                Scalar const sign = ((std::uint64_t)x & (1ULL << bit)) != 0ULL ? -1.0 : 1.0;
+                Scalar const magnitude = (Scalar)(1ULL << bit);
+                s = sign * magnitude;
+            });
+            u = (s / nw) * W;
+        }
+    }
+
+    ++bit;
+
+    if (u.size() == 0)
+        return;
+
+    solver().clip_by_constraints(u);
+
+    solver().sample.vector = u;
+    solver().sample.ready = true;    
 }
 
 
@@ -463,6 +515,8 @@ SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
 {
     if (!solver().config.use_bit_flips)
         return State::FUZZING_RANDOM;
+    if (var < solver().constants.active_variable_indices.size())
+        return State::FUZZING_BIT_FLIPS;
     return State::FUZZING_RANDOM;
 }
 

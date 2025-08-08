@@ -178,6 +178,8 @@ private:
         void update() override;
         State transition() const override;
     private:
+        std::size_t var{ 0ULL };
+        std::size_t bit{ 0ULL };
     };
 
     struct StateFuzzingRandom : public StateProcessor
