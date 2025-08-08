@@ -461,8 +461,7 @@ void SolverImpl::StateFuzzingBitFlips::update()
     if (var == solver().constants.active_variable_indices.size())
         return;
 
-    std::size_t const var_idx{ solver().constants.active_variable_indices.at(var) };
-    Variable const& var_ref{ solver().round_constants.seed_input.at(var_idx) };
+    Variable const& var_ref{ solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(var)) };
 
     std::size_t num_bits;
     var_ref.visit([&num_bits]<typename T>(T) { num_bits = std::is_integral<std::decay_t<T> >::value ? 8ULL * sizeof(T) : 0ULL; });
@@ -475,7 +474,7 @@ void SolverImpl::StateFuzzingBitFlips::update()
 
     Vector u(0);
     {
-        Vector n = Vector::Unit(solver().matrix.rows(), var_idx);
+        Vector n = Vector::Unit(solver().matrix.rows(), var);
         Vector W = n.transpose() * solver().matrix;
         Vector w = solver().matrix * W;
 
