@@ -401,8 +401,11 @@ void SolverImpl::StateGradient::update(std::vector<Evaluation> const& output)
 
 SolverImpl::State SolverImpl::StateGradient::transition() const
 {
-    if (column_index < solver().matrix.cols())
-        return solver().state;
+    if (solver().config.use_gradient_descent || solver().config.use_random_fuzzing)
+    {
+        if (column_index < solver().matrix.cols())
+            return solver().state;
+    }
     return State::FUZZING_GRADIENT_DESCENT;
 }
 
