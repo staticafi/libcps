@@ -357,7 +357,7 @@ SolverImpl::State SolverImpl::StateConstraints::transition() const
 {
     if (!solver().config.build_constraints)
         return State::GRADIENT;
-    if (column_index < solver().matrix.cols())
+    if (!gradients.empty() && column_index < solver().matrix.cols())
         return solver().state;
     return State::GRADIENT;
 }
