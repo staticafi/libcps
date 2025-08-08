@@ -1,11 +1,14 @@
 #ifndef CPS_CONFIG_HPP_INCLUDED
 #   define CPS_CONFIG_HPP_INCLUDED
 
+#   include <cstdint>
+
 namespace cps {
 
 
 struct Config
 {
+    std::uint32_t max_rounds{ 100U };
     bool build_local_space{ true };
     bool build_constraints{ true };
     bool use_gradient_descent{ true };

@@ -110,7 +110,9 @@ private:
     {
         explicit StateRoundBegin(SolverImpl* const solver) : StateProcessor{ solver } {}
         void enter() override;
-        State transition() const override { return State::LOCAL_SPACE; }
+        State transition() const override;
+    private:
+        std::uint32_t count{ 0U };
     };
 
     struct GradientComputationBase : public StateProcessor

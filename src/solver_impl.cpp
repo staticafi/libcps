@@ -202,6 +202,15 @@ void SolverImpl::StateRoundBegin::enter()
         });
     solver().matrix.setIdentity(n,n);
     solver().best_io.clear();
+
+    ++count;
+    solver().statistics["NUM_ROUNDS"] = std::min(count, solver().config.max_rounds);
+}
+
+
+SolverImpl::State SolverImpl::StateRoundBegin::transition() const
+{
+    return count <= solver().config.max_rounds ? State::LOCAL_SPACE : State::FAILURE;
 }
 
 
