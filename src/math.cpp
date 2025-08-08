@@ -35,4 +35,27 @@ Scalar integral_epsilon_step_along_vector(
 }
 
 
+bool subspace_orthogonal_to_vector(Matrix const& space, Vector const& vector, Matrix& sub_space)
+{
+    if (!valid(vector) || vector.norm() < 1e-9)
+        return false;
+    Vector const g{ vector.normalized() };
+    Matrix M(space.cols(), 0);
+    for (std::size_t i{ 0ULL }; i < space.cols(); ++i)
+    {
+        Vector w{ Vector::Unit(space.cols(), i) };
+        w -= w.dot(g) * g;
+        for (std::size_t j{ 0ULL }; j != M.cols(); ++j)
+            w -= w.dot(M.col(j)) * M.col(j);
+        if (valid(w) && w.norm() >= 1e-9)
+        {
+            M.conservativeResize(Eigen::NoChange, M.cols() + 1);
+            M.col(M.cols() - 1) = w.normalized();
+        }
+    }
+    sub_space = space * M;
+    return true;
+}
+
+
 }

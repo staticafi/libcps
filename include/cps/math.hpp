@@ -75,6 +75,9 @@ Scalar integral_epsilon_step_along_vector(
     );
 
 
+bool subspace_orthogonal_to_vector(Matrix const& space, Vector const& vector, Matrix& sub_space);
+
+
 }
 
 #endif

@@ -242,7 +242,7 @@ void SolverImpl::StateLocalSpace::update()
 
     if (column_index == solver().matrix.cols())
     {
-        solver().update_matrix(gradient);
+        subspace_orthogonal_to_vector(solver().matrix, gradient, solver().matrix);
 
         ++active_function_index;
         reset_gradient_computation();
@@ -536,28 +536,6 @@ void SolverImpl::StateRoundEnd::enter()
 SolverImpl::State SolverImpl::StateRoundEnd::transition() const
 {
     return improved ? State::ROUND_BEGIN : State::FAILURE;
-}
-
-
-void SolverImpl::update_matrix(Vector const& gradient)
-{
-    if (!valid(gradient) || gradient.norm() < 1e-9)
-        return;
-    Vector const g{ gradient.normalized() };
-    Matrix M(matrix.cols(), 0);
-    for (std::size_t i{ 0ULL }; i < matrix.cols(); ++i)
-    {
-        Vector w{ Vector::Unit(matrix.cols(), i) };
-        w -= w.dot(g) * g;
-        for (std::size_t j{ 0ULL }; j != M.cols(); ++j)
-            w -= w.dot(M.col(j)) * M.col(j);
-        if (valid(w) && w.norm() >= 1e-9)
-        {
-            M.conservativeResize(Eigen::NoChange, M.cols() + 1);
-            M.col(M.cols() - 1) = w.normalized();
-        }
-    }
-    matrix = matrix * M;
 }
 
 
