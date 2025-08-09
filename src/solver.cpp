@@ -51,16 +51,11 @@ bool solve(
     std::vector<Comparator> const& comparators,
     std::vector<Variable> const& seed_input,
     std::vector<Evaluation> const& seed_output,
-    std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
+    std::function<void(std::vector<Variable> const&, std::function<bool(Evaluation&&)> const&)> const& evaluator,
     Config const& config,
     Statistics* statistics
     )
 {
-    std::vector<bool> predicates;
-    for (auto const& eval : seed_output)
-        predicates.push_back(eval.predicate);
-    predicates.pop_back();
-
     Solver solver{ parameter_indices, comparators, seed_input, seed_output, config };
     while (!solver.is_finished())
     {
@@ -68,7 +63,11 @@ bool solve(
         solver.compute_next_input(best_input);
 
         best_output.clear();
-        evaluator(best_input, predicates, best_output);
+        evaluator(best_input, [&seed_output, &best_output](Evaluation&& e) {
+            best_output.emplace_back(e);
+            return best_output.size() < seed_output.size() &&
+                   best_output.back().predicate == seed_output.at(best_output.size() - 1ULL).predicate;
+        });
 
         solver.process_output(best_output);
     }

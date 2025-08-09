@@ -51,7 +51,7 @@ bool solve(
     std::vector<Comparator> const& comparators,
     std::vector<Variable> const& seed_input,
     std::vector<Evaluation> const& seed_output,
-    std::function<void(std::vector<Variable> const&, std::vector<bool> const&, std::vector<Evaluation>&)> const& evaluator,
+    std::function<void(std::vector<Variable> const&, std::function<bool(Evaluation&&)> const&)> const& evaluator,
     Config const& config = Config{},
     Statistics* statistics = nullptr
     );
