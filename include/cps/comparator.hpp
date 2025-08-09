@@ -17,6 +17,9 @@ enum struct Comparator : std::uint8_t
 };
 
 
+Comparator opposite(Comparator comparator);
+
+
 }
 
 #endif
