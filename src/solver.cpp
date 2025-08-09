@@ -22,7 +22,13 @@ Solver::Solver(
         !seed_input.empty() &&
         seed_output.size() == comparators.size()
     );
-    solver = std::make_unique<SolverImpl>(parameter_indices, comparators, seed_input, seed_output, config);
+    solver = new SolverImpl(parameter_indices, comparators, seed_input, seed_output, config);
+}
+
+
+Solver::~Solver()
+{
+    delete solver;
 }
 
 

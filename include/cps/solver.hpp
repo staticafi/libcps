@@ -8,7 +8,6 @@
 #   include <cps/statistics.hpp>
 #   include <vector>
 #   include <functional>
-#   include <memory>
 #   include <cstdint>
 
 namespace cps {
@@ -26,6 +25,7 @@ struct Solver
         std::vector<Evaluation> const& seed_output,
         Config const& config = Config{}
     );
+    ~Solver();
 
     bool is_finished() const;
     bool success() const;
@@ -40,7 +40,7 @@ struct Solver
     Statistics const& get_statistics() const;
 
 private:
-    std::unique_ptr<SolverImpl> solver;
+    SolverImpl* solver;
 };
 
 
