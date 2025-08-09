@@ -320,7 +320,9 @@ void SolverImpl::StateConstraints::update()
                 solver().constraints.push_back({
                     index_and_grad.second.normalized(),
                     -solver().round_constants.seed_output.at(index_and_grad.first).function / index_and_grad.second.norm(),
-                    solver().constants.comparators.at(index_and_grad.first)
+                    solver().round_constants.seed_output.at(index_and_grad.first).predicate ?
+                        solver().constants.comparators.at(index_and_grad.first) :
+                        opposite(solver().constants.comparators.at(index_and_grad.first))
                 });
         return;
     }
