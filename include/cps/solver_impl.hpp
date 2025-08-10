@@ -213,6 +213,7 @@ private:
     struct StateSuccess : public StateProcessor { State transition() const override { return State::SUCCESS; } };
     struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
+    Comparator comparator_at(std::size_t idx) const;
     Scalar epsilon_step_along_vector(Vector const& u) const;
     bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 1000ULL) const;

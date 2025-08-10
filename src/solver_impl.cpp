@@ -179,9 +179,9 @@ void SolverImpl::process_output(std::vector<Evaluation> const& output_)
             best_io.output = output;
             return;
         }
-        else if (local::is_better_evaluation(constants.comparators.back(), round_constants.seed_output.at(last).function, output.at(last).function)
+        else if (local::is_better_evaluation(comparator_at(last), round_constants.seed_output.at(last).function, output.at(last).function)
                     && (best_io.input.empty() ||
-                        local::is_better_evaluation(constants.comparators.back(), best_io.output.at(last).function, output.at(last).function)))
+                        local::is_better_evaluation(comparator_at(last), best_io.output.at(last).function, output.at(last).function)))
         {
             best_io.input = best_io.candidate;
             best_io.output = output;
@@ -240,7 +240,7 @@ void SolverImpl::StateLocalSpace::enter()
 void SolverImpl::StateLocalSpace::update()
 {
     std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
-    if (solver().constants.comparators.at(fn_idx) != Comparator::EQUAL)
+    if (solver().comparator_at(fn_idx) != Comparator::EQUAL)
     {
         ++active_function_index;
         return;
@@ -297,7 +297,7 @@ void SolverImpl::StateConstraints::enter()
     reset_gradient_computation();
     gradients.clear();
     for (std::size_t i : solver().constants.active_function_indices)
-        if (i + 1ULL < solver().constants.comparators.size() && solver().constants.comparators.at(i) != Comparator::EQUAL)
+        if (i + 1ULL < solver().constants.comparators.size() && solver().comparator_at(i) != Comparator::EQUAL)
             gradients.insert({ i, Vector::Zero(solver().matrix.cols()) });
     for (auto const& index_and_grad : gradients)
         partial_function_indices.insert(index_and_grad.first);
@@ -320,9 +320,7 @@ void SolverImpl::StateConstraints::update()
                 solver().constraints.push_back({
                     index_and_grad.second.normalized(),
                     -solver().round_constants.seed_output.at(index_and_grad.first).function / index_and_grad.second.norm(),
-                    solver().round_constants.seed_output.at(index_and_grad.first).predicate ?
-                        solver().constants.comparators.at(index_and_grad.first) :
-                        opposite(solver().constants.comparators.at(index_and_grad.first))
+                    solver().comparator_at(index_and_grad.first)
                 });
         return;
     }
@@ -433,7 +431,7 @@ void SolverImpl::StateFuzzingGradientDescent::update()
     {
         lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
         Scalar const epsilon = solver().epsilon_step_along_vector(solver().matrix * ((multiplier * lambda) * solver().gradient));
-        switch (solver().constants.comparators.back())
+        switch (solver().comparator_at(solver().constants.comparators.size() - 1ULL))
         {
             case Comparator::EQUAL: break;
             case Comparator::UNEQUAL: lambda += epsilon; break;
@@ -603,6 +601,12 @@ void SolverImpl::StateRoundEnd::enter()
 SolverImpl::State SolverImpl::StateRoundEnd::transition() const
 {
     return improved ? State::ROUND_BEGIN : State::FAILURE;
+}
+
+
+Comparator SolverImpl::comparator_at(std::size_t const idx) const
+{
+    return round_constants.seed_output.at(idx).predicate ? constants.comparators.at(idx) : opposite(constants.comparators.at(idx));
 }
 
 
