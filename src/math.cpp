@@ -11,20 +11,22 @@ Scalar integral_epsilon_step_along_vector(
     )
 {
     Scalar best_step{ 0.0 };
-        Scalar min_error = std::numeric_limits<Scalar>::max();
-    if (v.size() > 0)
+    if (v.size() > 0 && v.norm() > 1e-9)
     {
-        for (std::uint16_t i{ 1U }; i <= max_steps; ++i)
+        Scalar const v_len{ v.norm() };
+        Vector const u{ v / v_len };
+        Scalar min_error = std::numeric_limits<Scalar>::max();
+        for (std::uint16_t i{ 0U }; i <= max_steps; ++i)
         {
-            Vector const w{ (((Scalar)i / (Scalar)num_steps_per_unit) * v).array().round() };
+            Vector const w{ (v + ((Scalar)i / (Scalar)num_steps_per_unit) * u).array().round() };
             if (w.norm() > 0.9)
             {
-                Scalar const t{ w.dot(v) };
-                Scalar const error{ (w - t * v).norm() };
+                Scalar const t{ w.dot(u) };
+                Scalar const error{ (w - t * u).norm() };
                 if (error < min_error)
                 {
                     min_error = error;
-                    best_step = t;
+                    best_step = t / v_len;
                     if (min_error < epsilon)
                         break;
                 }
