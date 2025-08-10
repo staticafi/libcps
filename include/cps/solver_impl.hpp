@@ -150,7 +150,6 @@ private:
         State transition() const override;
     private:
         std::map<std::size_t, Vector> gradients{};
-        std::unordered_set<std::size_t> partial_function_indices{};
     };
 
     struct StateGradient : public GradientComputationBase

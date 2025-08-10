@@ -297,19 +297,13 @@ void SolverImpl::StateConstraints::enter()
     for (std::size_t i : solver().constants.active_function_indices)
         if (i + 1ULL < solver().constants.comparators.size() && solver().comparator_at(i) != Comparator::EQUAL)
             gradients.insert({ i, Vector::Zero(solver().matrix.cols()) });
-    for (auto const& index_and_grad : gradients)
-        partial_function_indices.insert(index_and_grad.first);
 }
 
 
 void SolverImpl::StateConstraints::update()
 {
     if (step_coeffs.empty())
-    {
         reset_for_next_partial();
-        for (auto const& index_and_grad : gradients)
-            partial_function_indices.insert(index_and_grad.first);
-    }
 
     if (column_index == solver().matrix.cols())
     {
@@ -330,24 +324,16 @@ void SolverImpl::StateConstraints::update()
 
 void SolverImpl::StateConstraints::update(std::vector<Evaluation> const& output)
 {
-    for (auto it = partial_function_indices.begin(); it != partial_function_indices.end(); )
-    {
-        if (*it < output.size())
+    for (auto const& index_and_grad : gradients)
+        if (index_and_grad.first < output.size())
         {
             Scalar const finite_difference{
-                compute_finite_difference(output.at(*it).function, solver().round_constants.seed_output.at(*it).function)
+                compute_finite_difference(output.at(index_and_grad.first).function,
+                                          solver().round_constants.seed_output.at(index_and_grad.first).function)
             };
-            if (valid(finite_difference))
-            {
-                gradients.at(*it)(column_index) = finite_difference;
-                it = partial_function_indices.erase(it);
-                continue;
-            }
+            if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradients.at(index_and_grad.first)(column_index)))
+                gradients.at(index_and_grad.first)(column_index) = finite_difference;
         }
-        ++it;
-    }
-    if (partial_function_indices.empty())
-        step_coeffs.clear();
 }
 
 
