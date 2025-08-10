@@ -273,11 +273,8 @@ void SolverImpl::StateLocalSpace::update(std::vector<Evaluation> const& output)
     Scalar const finite_difference{
         compute_finite_difference(output.at(fn_idx).function, solver().round_constants.seed_output.at(fn_idx).function)
     };
-    if (valid(finite_difference))
-    {
+    if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradient(column_index)))
         gradient(column_index) = finite_difference;
-        step_coeffs.clear();
-    }
 }
 
 
