@@ -201,6 +201,7 @@ void SolverImpl::StateRoundBegin::enter()
             solver().origin(i) = (double)x;
         });
     solver().matrix.setIdentity(n,n);
+    solver().constraints.clear();
     solver().best_io.clear();
 
     ++count;
