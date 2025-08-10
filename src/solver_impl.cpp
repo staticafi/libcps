@@ -411,22 +411,7 @@ void SolverImpl::StateFuzzingGradientDescent::update()
     multiplier = multipliers.back();
     multipliers.pop_back();
 
-    Scalar lambda;
-    {
-        lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
-        Scalar const epsilon = solver().epsilon_step_along_vector(solver().matrix * ((multiplier * lambda) * solver().gradient));
-        switch (solver().comparator_at(solver().constants.comparators.size() - 1ULL))
-        {
-            case Comparator::EQUAL: break;
-            case Comparator::UNEQUAL: lambda += epsilon; break;
-            case Comparator::LESS: lambda -= epsilon; break;
-            case Comparator::LESS_EQUAL: break;
-            case Comparator::GREATER: lambda += epsilon; break;
-            case Comparator::GREATER_EQUAL: break;
-            default: { UNREACHABLE(); } break;
-        }
-    }
-
+    Scalar const lambda{ -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient) };
     Vector u{ (multiplier * lambda) * solver().gradient };
     solver().clip_by_constraints(u);
 
