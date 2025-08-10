@@ -179,9 +179,9 @@ void SolverImpl::process_output(std::vector<Evaluation> const& output_)
             best_io.output = output;
             return;
         }
-        else if (local::is_better_evaluation(comparator_at(last), round_constants.seed_output.at(last).function, output.at(last).function)
+        else if (local::is_better_evaluation(opposite(comparator_at(last)), round_constants.seed_output.at(last).function, output.at(last).function)
                     && (best_io.input.empty() ||
-                        local::is_better_evaluation(comparator_at(last), best_io.output.at(last).function, output.at(last).function)))
+                        local::is_better_evaluation(opposite(comparator_at(last)), best_io.output.at(last).function, output.at(last).function)))
         {
             best_io.input = best_io.candidate;
             best_io.output = output;
