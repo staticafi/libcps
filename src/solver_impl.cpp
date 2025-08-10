@@ -507,14 +507,10 @@ void SolverImpl::StateFuzzingRandom::enter()
     cubes.clear();
     if (solver().gradient.dot(solver().gradient) > 1e-9)
     {
-        for (auto multiplier : { 1000.0, 100.0, 10.0, 0.1, 0.01, 0.001, 1.0 })
-        {
-            Scalar const lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
-            cubes.push_back({ .center = (multiplier * lambda) * solver().gradient, .num_remaining = 50ULL });
-        }
-        cubes.back().num_remaining += 50U;
+        Scalar const lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
+        cubes.push_back({ .center = lambda * solver().gradient, .num_remaining = 10ULL });
     }
-    cubes.assign({{ .center = Vector::Zero(solver().matrix.cols()), .num_remaining = 100ULL }});
+    cubes.push_back({ .center = Vector::Zero(solver().matrix.cols()), .num_remaining = 10ULL });
 }
 
 
