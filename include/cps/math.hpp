@@ -8,7 +8,14 @@
 namespace cps {
 
 
-using Scalar = double;
+template<typename T> struct is_floating_point : std::is_floating_point<T> {};
+
+// using namespace boost::multiprecision;
+// template<> struct is_floating_point<boost::multiprecision::cpp_bin_float_quad> : std::true_type {};
+// template<> struct is_floating_point<boost::multiprecision::cpp_dec_float_100> : std::true_type {};
+
+
+using Scalar = long double;
 using Vector = Eigen::VectorXd;
 using Matrix = Eigen::MatrixXd;
 
@@ -20,7 +27,7 @@ inline bool valid(Vector const& u) { return valid(u.dot(u)); }
 template<typename R>
 R cast(Scalar value)
 {
-    if constexpr (std::is_same<R, float>::value == false && std::is_same<R, double>::value == false)
+    if constexpr (is_floating_point<R>::value == false)
     {
         if (std::isnan(value))
             value = std::numeric_limits<Scalar>::max();

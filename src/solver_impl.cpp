@@ -654,7 +654,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             if (!valid(signed_distance))
                 return false;
 
-            Scalar const epsilon{ epsilon_around<Scalar>(signed_distance) };
+            Scalar const epsilon{ epsilon_around<double>(signed_distance) };
             switch (constraint.comparator)
             {
                 case Comparator::UNEQUAL:
