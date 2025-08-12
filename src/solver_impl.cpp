@@ -399,7 +399,7 @@ void SolverImpl::StateFuzzingGradientDescent::enter()
     if (solver().gradient.dot(solver().gradient) < 1e-9)
         multipliers.clear();
     else
-        multipliers.assign({ 1000.0, 100.0, 10.0, 0.1, 0.01, 0.001, 1.0 });
+        multipliers.assign({ 0.95, 1.05, 1.0 });
 }
 
 
