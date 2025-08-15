@@ -97,6 +97,27 @@ SolverImpl::SolverImpl(
     }
 
     state_processors.at(state)->enter();
+
+    statistics.insert({ "FUNCTIONS", constants.active_function_indices.size() });
+    statistics.insert({ "VARIABLES", constants.active_variable_indices.size() });
+    {
+        auto&  count{ statistics.insert({ "EQUALITIES", 0ULL }).first->second };
+        for (std::size_t i : constants.active_function_indices)
+            if (constants.comparators.at(i) == Comparator::EQUAL)
+                ++count;
+    }
+    {
+        auto&  count{ statistics.insert({ "FLOATS", 0ULL }).first->second };
+        for (std::size_t i : constants.active_variable_indices)
+            switch (round_constants.seed_input.at(i).type)
+            {
+                case Variable::Type::FLOAT32:
+                case Variable::Type::FLOAT64:
+                    ++count;
+                    break;
+                default: break;
+            }
+    }
 }
 
 
