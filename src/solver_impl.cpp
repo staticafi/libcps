@@ -302,6 +302,8 @@ void SolverImpl::StateLocalSpace::update()
     if (solver().comparator_at(fn_idx) != Comparator::EQUAL)
     {
         ++active_function_index;
+        reset_gradient_computation(active_function_index);
+        gradient = Vector::Zero(solver().matrix.cols());
         return;
     }
 
@@ -360,6 +362,8 @@ void SolverImpl::StateConstraints::update()
     if (solver().comparator_at(fn_idx) == Comparator::EQUAL)
     {
         ++active_function_index;
+        reset_gradient_computation(active_function_index);
+        gradient = Vector::Zero(solver().matrix.cols());
         return;
     }
 
