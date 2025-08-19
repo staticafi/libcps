@@ -611,25 +611,22 @@ Scalar SolverImpl::epsilon_step_along_vector(Vector const& u) const
 {
     Scalar best_step{ 0.0 };
     Vector I(0);
-    Vector F(0);
-    Vector D(0);
-    auto const& append = [](Vector& w, Scalar const value) { w.conservativeResize(w.size() + 1); w(w.size() - 1) = value; }; 
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([i, &u, &append, &I, &F, &D]<typename T>(T const x) {
-            if constexpr (std::is_integral<std::decay_t<T> >::value)
-                append(I, u(i));
-            else if constexpr (std::is_same<std::decay_t<T>, float>::value)
-                append(F, x);
-            else
-                append(D, x);
-        });
-    for (Scalar step : {
-            integral_epsilon_step_along_vector(I),
-            real_epsilon_step_along_vector<float>(F),
-            real_epsilon_step_along_vector<double>(D),
-            })
-        if (step > best_step)
-            best_step = step;
+        if (abs(u(i)) >= 1e-6)
+            round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([i, &u, &I, &best_step]<typename T>(T const x) {
+                if constexpr (std::is_integral<std::decay_t<T> >::value)
+                {
+                    I.conservativeResize(I.size() + 1);
+                    I(I.size() - 1) = u(i);
+                }
+                else
+                {
+                    Scalar const step{ epsilon_around<std::decay_t<T> >(x) / u(i) };
+                    if (step > best_step)
+                        best_step = step;
+                }
+            });
+    best_step = std::max(best_step, integral_epsilon_step_along_vector(I));
     return best_step;
 }
 
