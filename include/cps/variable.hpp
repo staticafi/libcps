@@ -101,6 +101,10 @@ void Variable::visit(Visitor visitor) const
 }
 
 
+bool operator==(Variable const& lhs, Variable const& rhs);
+struct VariableHasher { std::size_t operator()(Variable const& var) const; };
+
+
 }
 
 #endif
