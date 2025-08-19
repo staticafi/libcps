@@ -118,15 +118,15 @@ private:
     struct GradientComputationBase : public StateProcessor
     {
         explicit GradientComputationBase(SolverImpl* const solver) : StateProcessor{ solver } {}
-        void reset_gradient_computation() { column_index = 0ULL; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
-        void reset_for_next_partial() { ++column_index; current_coeff = 0.0; step_coeffs = STEP_COEFFS; }
+        void reset_gradient_computation(std::size_t active_function_index);
+        void reset_for_next_partial();
         Vector compute_partial_step_vector();
-        Scalar compute_finite_difference(Scalar const f_step, Scalar const f) const { return (f_step - f) / current_coeff; }
+        Scalar compute_finite_difference(Scalar const current_function_value) const;
     protected:
-        std::size_t column_index{ 0ULL };
-        Scalar current_coeff{};
+        Scalar seed_function_value{ 0.0 };
+        std::ptrdiff_t column_index{ -1L };
+        Scalar current_step{ 0.0 };
         std::vector<Scalar> step_coeffs{};
-        inline static std::vector<Scalar> const STEP_COEFFS{ -1.0, 1.0 };
     };
 
     struct StateLocalSpace : public GradientComputationBase
@@ -149,7 +149,8 @@ private:
         void update(std::vector<Evaluation> const& output) override;
         State transition() const override;
     private:
-        std::map<std::size_t, Vector> gradients{};
+        std::size_t active_function_index{ 0ULL };
+        Vector gradient{};
     };
 
     struct StateGradient : public GradientComputationBase
@@ -168,8 +169,7 @@ private:
         void update() override;
         State transition() const override;
     private:
-        Scalar multiplier{};
-        std::vector<Scalar> multipliers{};
+        std::vector<Vector> samples{};
     };
 
     struct StateFuzzingBitFlips : public StateProcessor
@@ -213,7 +213,13 @@ private:
     struct StateFailure : public StateProcessor { State transition() const override { return State::FAILURE; } };
 
     Comparator comparator_at(std::size_t idx) const;
-    Scalar epsilon_step_along_vector(Vector const& u) const;
+    void epsilon_steps_along_ray(
+        std::vector<Scalar>& result,
+        Vector const& S,
+        Vector u,
+        Scalar sign = 1.0,
+        Scalar const* function_value = nullptr
+        ) const;
     bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 1000ULL) const;
 
