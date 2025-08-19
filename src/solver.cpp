@@ -1,5 +1,6 @@
 #include <cps/solver.hpp>
 #include <cps/solver_impl.hpp>
+#include <cps/evaluation_cache.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
 
@@ -56,6 +57,7 @@ bool solve(
     Statistics* statistics
     )
 {
+    EvaluationCache cache;
     Solver solver{ parameter_indices, comparators, seed_input, seed_output, config };
     while (!solver.is_finished())
     {
@@ -63,11 +65,18 @@ bool solve(
         solver.compute_next_input(best_input);
 
         best_output.clear();
-        evaluator(best_input, [&seed_output, &best_output](Evaluation&& e) {
-            best_output.emplace_back(e);
-            return best_output.size() < seed_output.size() &&
-                   best_output.back().predicate == seed_output.at(best_output.size() - 1ULL).predicate;
-        });
+        EvaluationCache::Output const* const cached_output{ cache.find(best_input) };
+        if (cached_output != nullptr)
+            best_output = *cached_output;
+        else
+        {
+            evaluator(best_input, [&seed_output, &best_output](Evaluation&& e) {
+                best_output.emplace_back(e);
+                return best_output.size() < seed_output.size() &&
+                    best_output.back().predicate == seed_output.at(best_output.size() - 1ULL).predicate;
+            });
+            cache.insert(best_input, best_output);
+        }
 
         solver.process_output(best_output);
     }
@@ -77,6 +86,7 @@ bool solve(
 
     if (statistics != nullptr)
         *statistics = solver.get_statistics();
+    statistics->insert({ "CACHE_HITS", cache.hits() });
 
     return solver.success();
 }
