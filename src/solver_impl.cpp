@@ -8,10 +8,11 @@
 namespace cps {
 
 
-static inline void scalar_to_variable(Scalar const s, Variable& var)
+static inline Variable& scalar_to_variable(Scalar const s, Variable& var)
 {
     var.value.u64 = 0ULL;
     var.visit( [s]<typename T>(T&& x) { x = cast<std::decay_t<T> >(s); });
+    return var;
 }
 
 
