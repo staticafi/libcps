@@ -53,9 +53,16 @@ template<typename T>
 Scalar epsilon_around(Scalar const x)
 {
     static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value);
+    if (!valid(x))
+        return 0.0;
     int x_exponent;
     std::frexp(x, &x_exponent);
-    return std::pow(2.0, x_exponent - (std::numeric_limits<T>::digits >> 1));
+    double const  delta{ std::pow(2.0, x_exponent - (std::numeric_limits<T>::digits >> 1)) };
+    if (std::isfinite(x + delta) && !std::isnan(x + delta) && x + delta != x)
+        return delta;
+    else if (std::isfinite(x - delta) && !std::isnan(x - delta) && x - delta != x)
+        return delta;
+    return 0.0;
 }
 
 
