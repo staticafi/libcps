@@ -49,17 +49,17 @@ struct Variable
     Value value;
 };
 
-template<> inline Variable::Variable(bool const value_)            : type{ Type::BOOLEAN },  value{} { value.b   = value_; }
-template<> inline Variable::Variable(std::uint8_t const value_)    : type{ Type::UINT8 },    value{} { value.u8  = value_; }
-template<> inline Variable::Variable(std::int8_t const value_)     : type{ Type::SINT8 },    value{} { value.s8  = value_; }
-template<> inline Variable::Variable(std::uint16_t const value_)   : type{ Type::UINT16 },   value{} { value.u16 = value_; }
-template<> inline Variable::Variable(std::int16_t const value_)    : type{ Type::SINT16 },   value{} { value.s16 = value_; }
-template<> inline Variable::Variable(std::uint32_t const value_)   : type{ Type::UINT32 },   value{} { value.u32 = value_; }
-template<> inline Variable::Variable(std::int32_t const value_)    : type{ Type::SINT32 },   value{} { value.s32 = value_; }
-template<> inline Variable::Variable(std::uint64_t const value_)   : type{ Type::UINT64 },   value{} { value.u64 = value_; }
-template<> inline Variable::Variable(std::int64_t const value_)    : type{ Type::SINT64 },   value{} { value.s64 = value_; }
-template<> inline Variable::Variable(float const value_)           : type{ Type::FLOAT32 },  value{} { value.f32 = value_; }
-template<> inline Variable::Variable(double const value_)          : type{ Type::FLOAT64 },  value{} { value.f64 = value_; }
+template<> inline Variable::Variable(bool const value_)            : type{ Type::BOOLEAN },  value{ .u64 = 0ULL } { value.b   = value_; }
+template<> inline Variable::Variable(std::uint8_t const value_)    : type{ Type::UINT8 },    value{ .u64 = 0ULL } { value.u8  = value_; }
+template<> inline Variable::Variable(std::int8_t const value_)     : type{ Type::SINT8 },    value{ .u64 = 0ULL } { value.s8  = value_; }
+template<> inline Variable::Variable(std::uint16_t const value_)   : type{ Type::UINT16 },   value{ .u64 = 0ULL } { value.u16 = value_; }
+template<> inline Variable::Variable(std::int16_t const value_)    : type{ Type::SINT16 },   value{ .u64 = 0ULL } { value.s16 = value_; }
+template<> inline Variable::Variable(std::uint32_t const value_)   : type{ Type::UINT32 },   value{ .u64 = 0ULL } { value.u32 = value_; }
+template<> inline Variable::Variable(std::int32_t const value_)    : type{ Type::SINT32 },   value{ .u64 = 0ULL } { value.s32 = value_; }
+template<> inline Variable::Variable(std::uint64_t const value_)   : type{ Type::UINT64 },   value{ .u64 = 0ULL } { value.u64 = value_; }
+template<> inline Variable::Variable(std::int64_t const value_)    : type{ Type::SINT64 },   value{ .u64 = 0ULL } { value.s64 = value_; }
+template<> inline Variable::Variable(float const value_)           : type{ Type::FLOAT32 },  value{ .u64 = 0ULL } { value.f32 = value_; }
+template<> inline Variable::Variable(double const value_)          : type{ Type::FLOAT64 },  value{ .u64 = 0ULL } { value.f64 = value_; }
 
 
 template<typename Visitor>
