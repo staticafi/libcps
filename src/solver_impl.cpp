@@ -8,6 +8,21 @@
 namespace cps {
 
 
+static inline void scalar_to_variable(Scalar const s, Variable& var)
+{
+    var.value.u64 = 0ULL;
+    var.visit( [s]<typename T>(T&& x) { x = cast<std::decay_t<T> >(s); });
+}
+
+
+static inline Scalar variable_to_scalar(Variable const& var)
+{
+    Scalar s;
+    var.visit( [&s]<typename T>(T&& x) { s = (Scalar)x; });
+    return s;
+}
+
+
 SolverImpl::SolverImpl(
         std::vector<std::vector<std::size_t> > const& parameter_indices,
         std::vector<Comparator> const& comparators,
@@ -144,9 +159,7 @@ void SolverImpl::compute_next_input(std::vector<Variable>& input)
 
     Vector const u{ origin + matrix * sample.vector };
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
-        input.at(constants.active_variable_indices.at(i)).visit( [i, &u](auto&& x) {
-            x = cast<std::decay_t<decltype(x)> >(u(i));
-        });
+        scalar_to_variable(u(i), input.at(constants.active_variable_indices.at(i)));
     best_io.candidate = input;
 
     ++statistics.insert({ to_string(state), 0ULL }).first->second;
@@ -218,9 +231,7 @@ void SolverImpl::StateRoundBegin::enter()
     std::size_t const n{ solver().constants.active_variable_indices.size() };
     solver().origin.resize(n);
     for (std::size_t i{ 0ULL }; i != n; ++i)
-        solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i)).visit( [i, this](auto x) {
-            solver().origin(i) = (double)x;
-        });
+        solver().origin(i) = variable_to_scalar(solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i)));
     solver().matrix.setIdentity(n,n);
     solver().constraints.clear();
     solver().best_io.clear();
