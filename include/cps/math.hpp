@@ -16,9 +16,8 @@ template<typename T> struct is_floating_point : std::is_floating_point<T> {};
 
 
 using Scalar = long double;
-using Vector = Eigen::VectorXd;
-using Matrix = Eigen::MatrixXd;
-
+using Vector = Eigen::Matrix<Scalar, -1, 1>;
+using Matrix = Eigen::Matrix<Scalar, -1, -1>;
 
 inline bool valid(Scalar const s) { return !std::isnan(s) && std::isfinite(s); }
 inline bool valid(Vector const& u) { return valid(u.dot(u)); }
