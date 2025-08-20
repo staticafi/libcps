@@ -4,6 +4,7 @@ namespace cps {
 
 
 Scalar integral_epsilon_step_along_vector(
+    Vector const& S,
     Vector const& v,
     std::uint16_t const num_steps_per_unit,
     std::uint16_t const max_steps,
@@ -13,14 +14,16 @@ Scalar integral_epsilon_step_along_vector(
     Scalar best_step{ 0.0 };
     if (v.size() > 0 && v.norm() > 1e-9)
     {
+        Vector const H0{ S.array().round() };
         Scalar const v_len{ v.norm() };
         Vector const u{ v / v_len };
         Scalar min_error = std::numeric_limits<Scalar>::max();
-        for (std::uint16_t i{ 0U }; i <= max_steps; ++i)
+        for (std::uint16_t i{ 1U }; i <= max_steps; ++i)
         {
-            Vector const w{ (v + ((Scalar)i / (Scalar)num_steps_per_unit) * u).array().round() };
-            if (w.norm() > 0.9)
+            Vector const H{ (S + ((Scalar)i / (Scalar)num_steps_per_unit) * u).array().round() };
+            if ((H - H0).norm() > 1e-3)
             {
+                Vector const w{ H - S };
                 Scalar const t{ w.dot(u) };
                 Scalar const error{ (w - t * u).norm() };
                 if (error < min_error)

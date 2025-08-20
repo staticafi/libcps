@@ -66,6 +66,7 @@ Scalar epsilon_around(Scalar const x)
 
 
 Scalar integral_epsilon_step_along_vector(
+    Vector const& S,
     Vector const& v,
     std::uint16_t num_steps_per_unit = 2U,
     std::uint16_t max_steps = 1000U,

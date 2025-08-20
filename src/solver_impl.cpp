@@ -689,15 +689,12 @@ void SolverImpl::epsilon_steps_along_ray(
     if (function_value != nullptr)
         steps.push_back(0.0);
 
-    Vector I(0);
+    std::vector<std::size_t> int_coords;
     for (std::size_t i{ 0ULL }; i != constants.active_variable_indices.size(); ++i)
         if (std::fabs(u(i)) >= 1e-6)
             round_constants.seed_input.at(constants.active_variable_indices.at(i)).visit([&, i, function_value]<typename T>(T) {
                 if constexpr (std::is_integral<std::decay_t<T> >::value)
-                {
-                    I.conservativeResize(I.size() + 1);
-                    I(I.size() - 1) = u(i);
-                }
+                    int_coords.push_back(i);
                 else
                 {
                     Scalar const x{ (Scalar)cast<std::decay_t<T> >(S(i)) };
@@ -716,7 +713,18 @@ void SolverImpl::epsilon_steps_along_ray(
                 }
             });
 
-    Scalar const integral_epsilon{ integral_epsilon_step_along_vector(I) };
+    Scalar integral_epsilon{ 0.0 };
+    if (!int_coords.empty())
+    {
+        Vector P(int_coords.size()), v(int_coords.size());
+        for (std::size_t i{ 0ULL }; i != int_coords.size(); ++i)
+        {
+            P(i) = S(int_coords.at(i));
+            v(i) = u(int_coords.at(i));
+        }
+        integral_epsilon = integral_epsilon_step_along_vector(P, v);
+    }
+
     for (Scalar& step : steps)
         step = std::max(step, integral_epsilon);
 
