@@ -468,7 +468,8 @@ void SolverImpl::StateFuzzingGradientDescent::enter()
         Scalar const lambda{ -solver().round_constants.seed_output.back().function / u.dot(u) };
         if (!valid(lambda) || !valid(lambda * u))
             continue;
-        Vector const S{ solver().origin + solver().matrix * (lambda * u) };
+        Vector const v{ solver().matrix * (lambda * u) };
+        Vector const S{ solver().origin + v };
         std::vector<Scalar> steps;
         switch (opposite(solver().comparator_at(solver().constants.active_function_indices.back())))
         {
@@ -476,22 +477,22 @@ void SolverImpl::StateFuzzingGradientDescent::enter()
                 steps.push_back(0.0);
                 break;
             case Comparator::UNEQUAL:
-                solver().epsilon_steps_along_ray(steps, S, u,  1.0);
-                solver().epsilon_steps_along_ray(steps, S, u, -1.0);
+                solver().epsilon_steps_along_ray(steps, S, v,  1.0);
+                solver().epsilon_steps_along_ray(steps, S, v, -1.0);
                 break;
             case Comparator::LESS:
-                solver().epsilon_steps_along_ray(steps, S, u, -1.0);
+                solver().epsilon_steps_along_ray(steps, S, v, -1.0);
                 break;
             case Comparator::LESS_EQUAL:
                 steps.push_back(0.0);
-                solver().epsilon_steps_along_ray(steps, S, u, -1.0);
+                solver().epsilon_steps_along_ray(steps, S, v, -1.0);
                 break;
             case Comparator::GREATER:
-                solver().epsilon_steps_along_ray(steps, S, u,  1.0);
+                solver().epsilon_steps_along_ray(steps, S, v,  1.0);
                 break;
             case Comparator::GREATER_EQUAL:
                 steps.push_back(0.0);
-                solver().epsilon_steps_along_ray(steps, S, u,  1.0);
+                solver().epsilon_steps_along_ray(steps, S, v,  1.0);
                 break;
             default: { UNREACHABLE(); } break;
         }
