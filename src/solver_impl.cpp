@@ -593,7 +593,7 @@ SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
     if (!solver().config.use_bit_flips)
         return State::FUZZING_RANDOM;
     if (var < solver().constants.active_variable_indices.size())
-        return State::FUZZING_BIT_FLIPS;
+        return solver().state;
     return State::FUZZING_RANDOM;
 }
 
@@ -641,9 +641,9 @@ SolverImpl::State SolverImpl::StateFuzzingRandom::transition() const
 {
     if (!solver().config.use_random_fuzzing)
         return State::ROUND_END;
-    if (cubes.empty())
-        return State::ROUND_END;
-    return State::FUZZING_RANDOM;
+    if (!cubes.empty())
+        return solver().state;
+    return State::ROUND_END;
 }
 
 
