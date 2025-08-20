@@ -546,6 +546,7 @@ void SolverImpl::StateFuzzingBitFlips::update()
     if (bit == num_bits)
     {
         ++var;
+        bit = 0UL;
         return;
     }
 
