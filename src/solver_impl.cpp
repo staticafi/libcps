@@ -468,8 +468,8 @@ void SolverImpl::StateFuzzingGradientDescent::enter()
         Scalar const lambda{ -solver().round_constants.seed_output.back().function / u.dot(u) };
         if (!valid(lambda) || !valid(lambda * u))
             continue;
-        Vector const v{ solver().matrix * (lambda * u) };
-        Vector const S{ solver().origin + v };
+        Vector const v{ solver().matrix * u };
+        Vector const S{ solver().origin + lambda * v };
         std::vector<Scalar> steps;
         switch (opposite(solver().comparator_at(solver().constants.active_function_indices.back())))
         {
