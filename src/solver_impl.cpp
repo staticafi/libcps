@@ -317,6 +317,14 @@ void SolverImpl::StateLocalSpace::update()
         ++active_function_index;
         reset_gradient_computation(active_function_index);
         gradient = Vector::Zero(solver().matrix.cols());
+
+        if (solver().matrix.cols() == 0ULL)
+        {
+            std::size_t const n{ solver().constants.active_variable_indices.size() };
+            solver().matrix.setIdentity(n,n);
+            active_function_index = solver().constants.active_function_indices.size() - 1ULL;
+        }
+
         return;
     }
 
@@ -340,8 +348,6 @@ SolverImpl::State SolverImpl::StateLocalSpace::transition() const
 {
     if (!solver().config.build_local_space)
         return State::CONSTRAINTS;
-    if (solver().matrix.cols() == 0ULL)
-        return State::FAILURE;
     if (active_function_index < solver().constants.active_function_indices.size() - 1ULL)
         return solver().state;
     return State::CONSTRAINTS;
