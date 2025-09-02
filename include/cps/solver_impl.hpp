@@ -119,14 +119,19 @@ private:
     {
         explicit GradientComputationBase(SolverImpl* const solver) : StateProcessor{ solver } {}
         void reset_gradient_computation(std::size_t active_function_index);
-        void reset_for_next_partial();
         Vector compute_partial_step_vector();
-        Scalar compute_finite_difference(Scalar const current_function_value) const;
-    protected:
+        bool update_gradient(std::vector<Evaluation> const& output);
+        bool is_gradient_ready() const;
+        Vector const& get_gradient() const { return gradient; }
+        std::size_t get_active_function_index() const { return active_function_index; }
+    private:
+        void reset_for_next_partial();
+        std::size_t active_function_index{ 0ULL };
         Scalar seed_function_value{ 0.0 };
         std::ptrdiff_t column_index{ -1L };
         Scalar current_step{ 0.0 };
         std::vector<Scalar> step_coeffs{};
+        Vector gradient{};
     };
 
     struct StateLocalSpace : public GradientComputationBase
@@ -136,9 +141,6 @@ private:
         void update() override;
         void update(std::vector<Evaluation> const& output) override;
         State transition() const override;
-    private:
-        std::size_t active_function_index{ 0ULL };
-        Vector gradient{};
     };
 
     struct StateConstraints : public GradientComputationBase
@@ -148,9 +150,6 @@ private:
         void update() override;
         void update(std::vector<Evaluation> const& output) override;
         State transition() const override;
-    private:
-        std::size_t active_function_index{ 0ULL };
-        Vector gradient{};
     };
 
     struct StateGradient : public GradientComputationBase

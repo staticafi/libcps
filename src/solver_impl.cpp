@@ -248,8 +248,9 @@ SolverImpl::State SolverImpl::StateRoundBegin::transition() const
 }
 
 
-void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t const active_function_index)
+void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t const active_function_index_)
 {
+    active_function_index = active_function_index_;
     Scalar const fn_value{
         solver().round_constants.seed_output.at(solver().constants.active_function_indices.at(active_function_index)).function
     };
@@ -257,6 +258,8 @@ void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t
     column_index = -1L;
     current_step = 0.0;
     step_coeffs.clear();
+    gradient = Vector::Zero(solver().matrix.cols());
+    reset_for_next_partial();
 }
 
 
@@ -274,12 +277,6 @@ void SolverImpl::GradientComputationBase::reset_for_next_partial()
 }
 
 
-Scalar SolverImpl::GradientComputationBase::compute_finite_difference(Scalar const current_function_value) const
-{
-    return (current_function_value - seed_function_value) / current_step;
-}
-
-
 Vector SolverImpl::GradientComputationBase::compute_partial_step_vector()
 {
     current_step = step_coeffs.back();
@@ -288,42 +285,54 @@ Vector SolverImpl::GradientComputationBase::compute_partial_step_vector()
 }
 
 
+bool SolverImpl::GradientComputationBase::update_gradient(std::vector<Evaluation> const& output)
+{
+    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
+    if (fn_idx < output.size())
+    {
+        Scalar const finite_difference{ (output.at(fn_idx).function - seed_function_value) / current_step };
+        if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradient(column_index)))
+            gradient(column_index) = finite_difference;
+    }
+    if (step_coeffs.empty())
+        reset_for_next_partial();
+    return is_gradient_ready();
+}
+
+
+bool SolverImpl::GradientComputationBase::is_gradient_ready() const
+{
+    return column_index == solver().matrix.cols();
+}
+
+
 void SolverImpl::StateLocalSpace::enter()
 {
-    active_function_index = 0ULL;
-    reset_gradient_computation(active_function_index);
-    gradient = Vector::Zero(solver().matrix.cols());
+    reset_gradient_computation(0ULL);
 }
 
 
 void SolverImpl::StateLocalSpace::update()
 {
-    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
+    std::size_t const fn_idx{ solver().constants.active_function_indices.at(get_active_function_index()) };
     if (solver().comparator_at(fn_idx) != Comparator::EQUAL)
     {
-        ++active_function_index;
-        reset_gradient_computation(active_function_index);
-        gradient = Vector::Zero(solver().matrix.cols());
+        reset_gradient_computation(get_active_function_index() + 1ULL);
         return;
     }
 
-    if (step_coeffs.empty())
-        reset_for_next_partial();
-
-    if (column_index == solver().matrix.cols())
+    if (is_gradient_ready())
     {
-        subspace_orthogonal_to_vector(solver().matrix, gradient, solver().matrix);
-
-        ++active_function_index;
-        reset_gradient_computation(active_function_index);
-        gradient = Vector::Zero(solver().matrix.cols());
+        subspace_orthogonal_to_vector(solver().matrix, get_gradient(), solver().matrix);
 
         if (solver().matrix.cols() == 0ULL)
         {
             std::size_t const n{ solver().constants.active_variable_indices.size() };
             solver().matrix.setIdentity(n,n);
-            active_function_index = solver().constants.active_function_indices.size() - 1ULL;
+            reset_gradient_computation(solver().constants.active_function_indices.size() - 1ULL);
         }
+        else
+            reset_gradient_computation(get_active_function_index() + 1ULL);
 
         return;
     }
@@ -335,12 +344,7 @@ void SolverImpl::StateLocalSpace::update()
 
 void SolverImpl::StateLocalSpace::update(std::vector<Evaluation> const& output)
 {
-    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
-    if (fn_idx >= output.size())
-        return;
-    Scalar const finite_difference{ compute_finite_difference(output.at(fn_idx).function) };
-    if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradient(column_index)))
-        gradient(column_index) = finite_difference;
+    update_gradient(output);
 }
 
 
@@ -348,7 +352,7 @@ SolverImpl::State SolverImpl::StateLocalSpace::transition() const
 {
     if (!solver().config.build_local_space)
         return State::CONSTRAINTS;
-    if (active_function_index < solver().constants.active_function_indices.size() - 1ULL)
+    if (get_active_function_index() < solver().constants.active_function_indices.size() - 1ULL)
         return solver().state;
     return State::CONSTRAINTS;
 }
@@ -356,38 +360,29 @@ SolverImpl::State SolverImpl::StateLocalSpace::transition() const
 
 void SolverImpl::StateConstraints::enter()
 {
-    active_function_index = 0ULL;
-    reset_gradient_computation(active_function_index);
-    gradient = Vector::Zero(solver().matrix.cols());
+    reset_gradient_computation(0ULL);
 }
 
 
 void SolverImpl::StateConstraints::update()
 {
-    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
+    std::size_t const fn_idx{ solver().constants.active_function_indices.at(get_active_function_index()) };
     if (solver().comparator_at(fn_idx) == Comparator::EQUAL)
     {
-        ++active_function_index;
-        reset_gradient_computation(active_function_index);
-        gradient = Vector::Zero(solver().matrix.cols());
+        reset_gradient_computation(get_active_function_index() + 1ULL);
         return;
     }
 
-    if (step_coeffs.empty())
-        reset_for_next_partial();
-
-    if (column_index == solver().matrix.cols())
+    if (is_gradient_ready())
     {
-        if (valid(gradient) && gradient.norm() >= 1e-9)
+        if (valid(get_gradient()) && get_gradient().norm() >= 1e-9)
             solver().constraints.push_back({
-                gradient.normalized(),
-                -solver().round_constants.seed_output.at(fn_idx).function / gradient.norm(),
+                get_gradient().normalized(),
+                -solver().round_constants.seed_output.at(fn_idx).function / get_gradient().norm(),
                 solver().comparator_at(fn_idx)
             });
 
-        ++active_function_index;
-        reset_gradient_computation(active_function_index);
-        gradient = Vector::Zero(solver().matrix.cols());
+        reset_gradient_computation(get_active_function_index() + 1ULL);
         return;
     }
 
@@ -398,12 +393,7 @@ void SolverImpl::StateConstraints::update()
 
 void SolverImpl::StateConstraints::update(std::vector<Evaluation> const& output)
 {
-    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
-    if (fn_idx >= output.size())
-        return;
-    Scalar const finite_difference{ compute_finite_difference(output.at(fn_idx).function) };
-    if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradient(column_index)))
-        gradient(column_index) = finite_difference;
+    update_gradient(output);
 }
 
 
@@ -411,7 +401,7 @@ SolverImpl::State SolverImpl::StateConstraints::transition() const
 {
     if (!solver().config.build_constraints)
         return State::GRADIENT;
-    if (active_function_index < solver().constants.active_function_indices.size() - 1ULL)
+    if (get_active_function_index() < solver().constants.active_function_indices.size() - 1ULL)
         return solver().state;
     return State::GRADIENT;
 }
@@ -426,11 +416,11 @@ void SolverImpl::StateGradient::enter()
 
 void SolverImpl::StateGradient::update()
 {
-    if (step_coeffs.empty())
-        reset_for_next_partial();
-
-    if (column_index == solver().matrix.cols())
+    if (is_gradient_ready())
+    {
+        solver().gradient = get_gradient();
         return;
+    }
 
     solver().sample.vector = compute_partial_step_vector();
     solver().sample.ready = true;
@@ -439,12 +429,8 @@ void SolverImpl::StateGradient::update()
 
 void SolverImpl::StateGradient::update(std::vector<Evaluation> const& output)
 {
-    std::size_t const fn_idx{ solver().constants.parameter_indices.size() - 1UL };
-    if (fn_idx >= output.size())
-        return;
-    Scalar const finite_difference{ compute_finite_difference(output.at(fn_idx).function) };
-    if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(solver().gradient(column_index)))
-        solver().gradient(column_index) = finite_difference;
+    if (update_gradient(output))
+        solver().gradient = get_gradient();
 }
 
 
@@ -452,7 +438,7 @@ SolverImpl::State SolverImpl::StateGradient::transition() const
 {
     if (solver().config.use_gradient_descent || solver().config.use_random_fuzzing)
     {
-        if (column_index < solver().matrix.cols())
+        if (!is_gradient_ready())
             return solver().state;
     }
     return State::FUZZING_GRADIENT_DESCENT;
