@@ -325,14 +325,14 @@ void SolverImpl::StateLocalSpace::update()
     {
         subspace_orthogonal_to_vector(solver().matrix, get_gradient(), solver().matrix);
 
-        if (solver().matrix.cols() == 0ULL)
+        if (solver().is_matrix_feasible())
+            reset_gradient_computation(get_active_function_index() + 1ULL);
+        else
         {
             std::size_t const n{ solver().constants.active_variable_indices.size() };
             solver().matrix.setIdentity(n,n);
             reset_gradient_computation(solver().constants.active_function_indices.size() - 1ULL);
         }
-        else
-            reset_gradient_computation(get_active_function_index() + 1ULL);
 
         return;
     }
@@ -823,6 +823,27 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
         }
         if (!clipped)
             return true;
+    }
+    return false;
+}
+
+
+bool SolverImpl::is_matrix_feasible()
+{
+    for (std::ptrdiff_t i{ 0L }; i != matrix.cols(); ++i)
+    {
+        Vector const& u = matrix.col(i);
+        for (auto const j : constants.parameter_indices.back())
+        {
+            auto const k{
+                    std::distance(
+                        constants.active_variable_indices.begin(), 
+                        std::lower_bound(constants.active_variable_indices.begin(), constants.active_variable_indices.end(), j)
+                        )
+                    };
+            if (std::fabs(u(k)) > 1e-6f)
+                return true;
+        }
     }
     return false;
 }

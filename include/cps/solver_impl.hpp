@@ -221,6 +221,7 @@ private:
         ) const;
     bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations = 1000ULL) const;
+    bool is_matrix_feasible();
 
     Config config;
     Constants constants;
