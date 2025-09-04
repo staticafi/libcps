@@ -308,7 +308,11 @@ bool SolverImpl::GradientComputationBase::update_gradient(std::vector<Evaluation
             return result;
         };
         if (!left_differences.empty() && !right_differences.empty())
-            gradient(column_index) = std::min(max_abs(left_differences), max_abs(right_differences));
+        {
+            Scalar const left_difference{ max_abs(left_differences) };
+            Scalar const right_difference{ max_abs(right_differences) };
+            gradient(column_index) = std::fabs(left_difference) < std::fabs(right_difference) ? left_difference : right_difference;
+        }
         else if (!left_differences.empty())
             gradient(column_index) = max_abs(left_differences);
         else if (!right_differences.empty())
