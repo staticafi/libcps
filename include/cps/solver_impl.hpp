@@ -131,6 +131,8 @@ private:
         std::ptrdiff_t column_index{ -1L };
         Scalar current_step{ 0.0 };
         std::vector<Scalar> step_coeffs{};
+        std::vector<Scalar> left_differences{};
+        std::vector<Scalar> right_differences{};
         Vector gradient{};
     };
 

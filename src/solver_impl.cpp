@@ -258,6 +258,8 @@ void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t
     column_index = -1L;
     current_step = 0.0;
     step_coeffs.clear();
+    left_differences.clear();
+    right_differences.clear();
     gradient = Vector::Zero(solver().matrix.cols());
     reset_for_next_partial();
 }
@@ -268,6 +270,8 @@ void SolverImpl::GradientComputationBase::reset_for_next_partial()
     ++column_index;
     current_step = 0.0;
     step_coeffs.clear();
+    left_differences.clear();
+    right_differences.clear();
     if (column_index < solver().matrix.cols())
     {
         Vector const u{ solver().matrix * Vector::Unit(solver().matrix.cols(), column_index) };
@@ -291,11 +295,28 @@ bool SolverImpl::GradientComputationBase::update_gradient(std::vector<Evaluation
     if (fn_idx < output.size())
     {
         Scalar const finite_difference{ (output.at(fn_idx).function - seed_function_value) / current_step };
-        if (valid(finite_difference) && std::fabs(finite_difference) > std::fabs(gradient(column_index)))
-            gradient(column_index) = finite_difference;
+        if (valid(finite_difference))
+            (current_step < 0.0 ? left_differences : right_differences).push_back(finite_difference);
     }
     if (step_coeffs.empty())
+    {
+        auto const& max_abs = [](std::vector<Scalar> const& vector) {
+            Scalar result = vector.front();
+            for (auto const x : vector)
+                if (std::fabs(x) > std::fabs(result))
+                    result = x;
+            return result;
+        };
+        if (!left_differences.empty() && !right_differences.empty())
+            gradient(column_index) = std::min(max_abs(left_differences), max_abs(right_differences));
+        else if (!left_differences.empty())
+            gradient(column_index) = max_abs(left_differences);
+        else if (!right_differences.empty())
+            gradient(column_index) = max_abs(right_differences);
+        // else gradient(column_index) remains zero.
+
         reset_for_next_partial();
+    }
     return is_gradient_ready();
 }
 
