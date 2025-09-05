@@ -163,9 +163,19 @@ private:
         State transition() const override;
     };
 
-    struct StateFuzzingGradientDescent : public StateProcessor
+    struct StateProcessorWithClipCache : public StateProcessor
     {
-        explicit StateFuzzingGradientDescent(SolverImpl* const solver) : StateProcessor{ solver } {}
+        explicit StateProcessorWithClipCache(SolverImpl* const solver) : StateProcessor{ solver } {}
+        bool is_clip_cache_empty() const { return clip_cache.empty(); }
+        void push_to_clip_cache(Vector u);
+        void take_sample_from_clip_cache();
+    private:
+        std::vector<Vector> clip_cache{};
+    };
+
+    struct StateFuzzingGradientDescent : public StateProcessorWithClipCache
+    {
+        explicit StateFuzzingGradientDescent(SolverImpl* const solver) : StateProcessorWithClipCache{ solver } {}
         void enter() override;
         void update() override;
         State transition() const override;
@@ -173,9 +183,9 @@ private:
         std::vector<Vector> samples{};
     };
 
-    struct StateFuzzingBitFlips : public StateProcessor
+    struct StateFuzzingBitFlips : public StateProcessorWithClipCache
     {
-        explicit StateFuzzingBitFlips(SolverImpl* const solver) : StateProcessor{ solver } {}
+        explicit StateFuzzingBitFlips(SolverImpl* const solver) : StateProcessorWithClipCache{ solver } {}
         void enter() override;
         void update() override;
         State transition() const override;
@@ -184,9 +194,9 @@ private:
         std::size_t bit{ 0ULL };
     };
 
-    struct StateFuzzingRandom : public StateProcessor
+    struct StateFuzzingRandom : public StateProcessorWithClipCache
     {
-        explicit StateFuzzingRandom(SolverImpl* const solver) : StateProcessor{ solver } {}
+        explicit StateFuzzingRandom(SolverImpl* const solver) : StateProcessorWithClipCache{ solver } {}
         void enter() override;
         void update() override;
         State transition() const override;

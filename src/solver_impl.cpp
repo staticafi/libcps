@@ -473,6 +473,23 @@ SolverImpl::State SolverImpl::StateGradient::transition() const
 }
 
 
+void SolverImpl::StateProcessorWithClipCache::push_to_clip_cache(Vector u)
+{
+    clip_cache.push_back(u);
+    if (solver().clip_by_constraints(u))
+        clip_cache.push_back(u);
+}
+
+
+void SolverImpl::StateProcessorWithClipCache::take_sample_from_clip_cache()
+{
+    solver().sample.vector = clip_cache.back();
+    solver().sample.ready = true;
+
+    clip_cache.pop_back();
+}
+
+
 void SolverImpl::StateFuzzingGradientDescent::enter()
 {
     samples.clear();
@@ -524,16 +541,19 @@ void SolverImpl::StateFuzzingGradientDescent::enter()
 
 void SolverImpl::StateFuzzingGradientDescent::update()
 {
+    if (!is_clip_cache_empty())
+    {
+        take_sample_from_clip_cache();
+        return;
+    }
+
     if (samples.empty())
         return;
 
     Vector u = samples.back();
     samples.pop_back();
 
-    solver().clip_by_constraints(u);
-
-    solver().sample.vector = u;
-    solver().sample.ready = true;
+    push_to_clip_cache(u);
 }
 
 
@@ -541,7 +561,7 @@ SolverImpl::State SolverImpl::StateFuzzingGradientDescent::transition() const
 {
     if (!solver().config.use_gradient_descent)
         return State::FUZZING_BIT_FLIPS;
-    if (!samples.empty())
+    if (!is_clip_cache_empty() || !samples.empty())
         return solver().state;
     return State::FUZZING_BIT_FLIPS;
 }
@@ -556,6 +576,12 @@ void SolverImpl::StateFuzzingBitFlips::enter()
 
 void SolverImpl::StateFuzzingBitFlips::update()
 {
+    if (!is_clip_cache_empty())
+    {
+        take_sample_from_clip_cache();
+        return;
+    }
+
     if (var == solver().constants.active_variable_indices.size())
         return;
 
@@ -602,10 +628,7 @@ void SolverImpl::StateFuzzingBitFlips::update()
     if (u.size() == 0)
         return;
 
-    solver().clip_by_constraints(u);
-
-    solver().sample.vector = u;
-    solver().sample.ready = true;    
+    push_to_clip_cache(u);
 }
 
 
@@ -613,7 +636,7 @@ SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
 {
     if (!solver().config.use_bit_flips)
         return State::FUZZING_RANDOM;
-    if (var < solver().constants.active_variable_indices.size())
+    if (!is_clip_cache_empty() || var < solver().constants.active_variable_indices.size())
         return solver().state;
     return State::FUZZING_RANDOM;
 }
@@ -634,6 +657,12 @@ void SolverImpl::StateFuzzingRandom::enter()
 
 void SolverImpl::StateFuzzingRandom::update()
 {
+    if (!is_clip_cache_empty())
+    {
+        take_sample_from_clip_cache();
+        return;
+    }
+
     if (cubes.empty())
         return;
     if (cubes.back().num_remaining == 0ULL)
@@ -651,10 +680,8 @@ void SolverImpl::StateFuzzingRandom::update()
         Scalar const magnitude{ get_random_float_64_bit_in_range(0.0, cube_half_size, generator) };
         u(i) += sign * magnitude;
     }
-    solver().clip_by_constraints(u);
 
-    solver().sample.vector = u;
-    solver().sample.ready = true;
+    push_to_clip_cache(u);
 }
 
 
@@ -662,7 +689,7 @@ SolverImpl::State SolverImpl::StateFuzzingRandom::transition() const
 {
     if (!solver().config.use_random_fuzzing)
         return State::ROUND_END;
-    if (!cubes.empty())
+    if (!is_clip_cache_empty() || !cubes.empty())
         return solver().state;
     return State::ROUND_END;
 }
@@ -792,6 +819,7 @@ bool SolverImpl::are_constraints_satisfied(Vector const& u) const
 
 bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
 {
+    bool any_change{ false };
     for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
     {
         bool  clipped{ false };
@@ -806,7 +834,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             }
             Scalar const signed_distance{ u.dot(constraint.normal) };
             if (!valid(signed_distance))
-                return false;
+                return any_change;
 
             Scalar const epsilon{ epsilon_around<double>(signed_distance) };
             switch (constraint.comparator)
@@ -816,6 +844,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                     {
                         u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
                         clipped = true;
+                        any_change = true;
                     }
                     break;
                 case Comparator::LESS:
@@ -823,6 +852,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                     {
                         u += ((constraint.signed_distance - epsilon) - signed_distance) * direction;
                         clipped = true;
+                        any_change = true;
                     }
                     break;
                 case Comparator::LESS_EQUAL:
@@ -830,6 +860,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                     {
                         u += (constraint.signed_distance - signed_distance) * direction;
                         clipped = true;
+                        any_change = true;
                     }
                     break;
                 case Comparator::GREATER:
@@ -837,6 +868,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                     {
                         u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
                         clipped = true;
+                        any_change = true;
                     }
                     break;
                 case Comparator::GREATER_EQUAL:
@@ -844,15 +876,16 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                     {
                         u += (constraint.signed_distance - signed_distance) * direction;
                         clipped = true;
+                        any_change = true;
                     }
                     break;
                 default: { UNREACHABLE(); } break;
             }
         }
         if (!clipped)
-            return true;
+            return any_change;
     }
-    return false;
+    return any_change;
 }
 
 
