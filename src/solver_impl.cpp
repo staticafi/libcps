@@ -311,7 +311,10 @@ bool SolverImpl::GradientComputationBase::update_gradient(std::vector<Evaluation
         {
             Scalar const left_difference{ max_abs(left_differences) };
             Scalar const right_difference{ max_abs(right_differences) };
-            gradient(column_index) = std::fabs(left_difference) < std::fabs(right_difference) ? left_difference : right_difference;
+            Scalar const product = left_difference * right_difference;
+            if (product >= 0.0)
+                gradient(column_index) = std::fabs(left_difference) < std::fabs(right_difference) ? left_difference : right_difference;
+            // else gradient(column_index) remains zero.
         }
         else if (!left_differences.empty())
             gradient(column_index) = max_abs(left_differences);
