@@ -251,12 +251,23 @@ SolverImpl::State SolverImpl::StateRoundBegin::transition() const
 void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t const active_function_index_)
 {
     active_function_index = active_function_index_;
-    Scalar const fn_value{
-        solver().round_constants.seed_output.at(solver().constants.active_function_indices.at(active_function_index)).function
-    };
+    std::size_t const fn_idx{ solver().constants.active_function_indices.at(active_function_index) };
+    Scalar const fn_value{ solver().round_constants.seed_output.at(fn_idx).function };
     seed_function_value = valid(fn_value) ? fn_value : 0.0;
     column_index = -1L;
     current_step = 0.0;
+    active_coordinates.clear();
+    for (std::size_t const i : solver().constants.parameter_indices.at(fn_idx))
+        active_coordinates.push_back(
+            std::distance(
+                solver().constants.active_variable_indices.begin(), 
+                std::lower_bound(
+                    solver().constants.active_variable_indices.begin(),
+                    solver().constants.active_variable_indices.end(),
+                    i
+                    )
+                )
+            );
     step_coeffs.clear();
     left_differences.clear();
     right_differences.clear();
@@ -267,16 +278,27 @@ void SolverImpl::GradientComputationBase::reset_gradient_computation(std::size_t
 
 void SolverImpl::GradientComputationBase::reset_for_next_partial()
 {
-    ++column_index;
     current_step = 0.0;
     step_coeffs.clear();
     left_differences.clear();
     right_differences.clear();
-    if (column_index < solver().matrix.cols())
+    for (++column_index; column_index < solver().matrix.cols(); ++column_index)
     {
-        Vector const u{ solver().matrix * Vector::Unit(solver().matrix.cols(), column_index) };
-        solver().epsilon_steps_along_ray(step_coeffs, solver().origin, u,  1.0, &seed_function_value);
-        solver().epsilon_steps_along_ray(step_coeffs, solver().origin, u, -1.0, &seed_function_value);
+        bool any_affected = false;
+        for (std::size_t const i : active_coordinates)
+            if (std::fabs(solver().matrix.col(column_index)(i)) > 1e-9)
+            {
+                any_affected = true;
+                break;
+            }
+        if (any_affected == true)
+        {
+            Vector const u{ solver().matrix * Vector::Unit(solver().matrix.cols(), column_index) };
+            solver().epsilon_steps_along_ray(step_coeffs, solver().origin, u,  1.0, &seed_function_value);
+            solver().epsilon_steps_along_ray(step_coeffs, solver().origin, u, -1.0, &seed_function_value);
+            break;
+        }
+        gradient(column_index) = 0.0;
     }
 }
 

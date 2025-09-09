@@ -129,6 +129,7 @@ private:
         std::size_t active_function_index{ 0ULL };
         Scalar seed_function_value{ 0.0 };
         std::ptrdiff_t column_index{ -1L };
+        std::vector<std::size_t> active_coordinates{};
         Scalar current_step{ 0.0 };
         std::vector<Scalar> step_coeffs{};
         std::vector<Scalar> left_differences{};
