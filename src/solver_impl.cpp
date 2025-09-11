@@ -903,7 +903,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             compute_direction(direction, constraint);
 
             Scalar const signed_distance{ u.dot(constraint.normal) };
-            if (valid(signed_distance) && !(signed_distance < constraint.signed_distance))
+            if (valid(signed_distance) && std::fabs(signed_distance - constraint.signed_distance) < 1e-9)
             {
                 Scalar const epsilon{ epsilon_around<double>(signed_distance) };
                 Scalar const sign = direction.dot(aim) < 0.0 ? -1.0 : 1.0;
