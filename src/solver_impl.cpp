@@ -822,7 +822,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
     std::unordered_set<Constraint const*> used_dirs{};
  
     auto const& compute_direction = [grad_dot_grad, &used_dirs, this](Vector& direction, Constraint const& constraint) {
-        if (grad_dot_grad > 1e-9 && used_dirs.insert(&constraint).second)
+        if (used_dirs.insert(&constraint).second && grad_dot_grad > 1e-9)
         {
             Vector const component_of_normal = constraint.normal - (gradient.dot(constraint.normal) / grad_dot_grad) * gradient;
             if (component_of_normal.dot(component_of_normal) > 1e-9)
