@@ -498,7 +498,7 @@ SolverImpl::State SolverImpl::StateGradient::transition() const
 void SolverImpl::StateProcessorWithClipCache::push_to_clip_cache(Vector u)
 {
     clip_cache.push_back(u);
-    if (solver().clip_by_constraints(u))
+    if (solver().clip_by_constraints(u, 50ULL))
         clip_cache.push_back(u);
 }
 
@@ -666,14 +666,16 @@ SolverImpl::State SolverImpl::StateFuzzingBitFlips::transition() const
 
 void SolverImpl::StateFuzzingRandom::enter()
 {
+    std::size_t constexpr num_samples_per_cube{ 25ULL };
+
     cube_half_size = 1.0 * (std::log(std::fabs(solver().round_constants.seed_output.back().function) + 1.0) + 1.0);
     cubes.clear();
     if (solver().gradient.dot(solver().gradient) > 1e-9)
     {
         Scalar const lambda = -solver().round_constants.seed_output.back().function / solver().gradient.dot(solver().gradient);
-        cubes.push_back({ .center = lambda * solver().gradient, .num_remaining = 10ULL });
+        cubes.push_back({ .center = lambda * solver().gradient, .num_remaining = num_samples_per_cube });
     }
-    cubes.push_back({ .center = Vector::Zero(solver().matrix.cols()), .num_remaining = 10ULL });
+    cubes.push_back({ .center = Vector::Zero(solver().matrix.cols()), .num_remaining = num_samples_per_cube });
 }
 
 
