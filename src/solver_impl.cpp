@@ -1,6 +1,7 @@
 #include <cps/solver_impl.hpp>
 #include <utility/assumptions.hpp>
 #include <utility/invariants.hpp>
+#include <utility/timeprof.hpp>
 #include <set>
 #include <limits>
 #include <type_traits>
@@ -843,6 +844,7 @@ bool SolverImpl::are_constraints_satisfied(Vector const& u) const
 
 bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
 {
+    TMPROF_BLOCK();
     Vector orig_u = u;
     bool any_change{ false };
     for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
