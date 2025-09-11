@@ -61,7 +61,8 @@ SolverImpl::SolverImpl(
     }
     , origin{ Vector(0) }
     , matrix{ Matrix(0,0) }
-    , constraints{}
+    , orderings{}
+    , inequalities{}
     , gradient{ Vector(0) }
     , statistics{}
 {
@@ -234,7 +235,8 @@ void SolverImpl::StateRoundBegin::enter()
     for (std::size_t i{ 0ULL }; i != n; ++i)
         solver().origin(i) = variable_to_scalar(solver().round_constants.seed_input.at(solver().constants.active_variable_indices.at(i)));
     solver().matrix.setIdentity(n,n);
-    solver().constraints.clear();
+    solver().orderings.clear();
+    solver().inequalities.clear();
     solver().best_io.clear();
 
     ++count;
@@ -426,11 +428,14 @@ void SolverImpl::StateConstraints::update()
     if (is_gradient_ready())
     {
         if (valid(get_gradient()) && get_gradient().norm() >= 1e-9)
-            solver().constraints.push_back({
+        {
+            Comparator const comparator{ solver().comparator_at(fn_idx) };
+            (comparator == Comparator::UNEQUAL ? &solver().inequalities : &solver().orderings)->push_back({
                 get_gradient().normalized(),
                 -solver().round_constants.seed_output.at(fn_idx).function / get_gradient().norm(),
-                solver().comparator_at(fn_idx)
+                comparator
             });
+        }
 
         reset_gradient_computation(get_active_function_index() + 1ULL);
         return;
@@ -811,69 +816,103 @@ void SolverImpl::epsilon_steps_along_ray(
 
 bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
 {
+    std::size_t const max_processed_constraints{ max_iterations * (orderings.size() + inequalities.size())};
+    std::size_t processed_constraints{ 0ULL };
+    Scalar const grad_dot_grad{ gradient.dot(gradient) };
+    std::unordered_set<Constraint const*> used_dirs{};
+ 
+    auto const& compute_direction = [grad_dot_grad, &used_dirs, this](Vector& direction, Constraint const& constraint) {
+        if (grad_dot_grad > 1e-9 && used_dirs.insert(&constraint).second)
+        {
+            Vector const component_of_normal = constraint.normal - (gradient.dot(constraint.normal) / grad_dot_grad) * gradient;
+            if (component_of_normal.dot(component_of_normal) > 1e-9)
+                direction = component_of_normal / component_of_normal.dot(constraint.normal);
+            else
+                direction = constraint.normal;
+        }
+        else
+            direction = constraint.normal;
+    };
+ 
     bool any_change{ false };
-    for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
+    while (processed_constraints < max_processed_constraints)
     {
         bool  clipped{ false };
-        for (Constraint const& constraint : constraints)
-        {
-            Vector direction{ constraint.normal };
-            if (iteration == 0UL && gradient.dot(gradient) > 1e-9)
-            {
-                Vector const component_of_normal = constraint.normal - (gradient.dot(constraint.normal) / gradient.dot(gradient)) * gradient;
-                if (component_of_normal.dot(component_of_normal) > 1e-9)
-                    direction = component_of_normal / component_of_normal.dot(constraint.normal);
-            }
-            Scalar const signed_distance{ u.dot(constraint.normal) };
-            if (!valid(signed_distance))
-                return any_change;
 
-            Scalar const epsilon{ epsilon_around<double>(signed_distance) };
-            switch (constraint.comparator)
+        Vector old_u = u;
+        for (Constraint const& constraint : orderings)
+        {
+            if (processed_constraints == max_processed_constraints)
+                return any_change;
+            ++processed_constraints;
+
+            Vector direction;
+            compute_direction(direction, constraint);
+
+            Scalar const signed_distance{ u.dot(constraint.normal) };
+            if (valid(signed_distance))
             {
-                case Comparator::UNEQUAL:
-                    if (!(constraint.signed_distance != signed_distance))
-                    {
-                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
-                        clipped = true;
-                        any_change = true;
-                    }
-                    break;
-                case Comparator::LESS:
-                    if (!(signed_distance < constraint.signed_distance))
-                    {
-                        u += ((constraint.signed_distance - epsilon) - signed_distance) * direction;
-                        clipped = true;
-                        any_change = true;
-                    }
-                    break;
-                case Comparator::LESS_EQUAL:
-                    if (!(signed_distance <= constraint.signed_distance))
-                    {
-                        u += (constraint.signed_distance - signed_distance) * direction;
-                        clipped = true;
-                        any_change = true;
-                    }
-                    break;
-                case Comparator::GREATER:
-                    if (!(signed_distance > constraint.signed_distance))
-                    {
-                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
-                        clipped = true;
-                        any_change = true;
-                    }
-                    break;
-                case Comparator::GREATER_EQUAL:
-                    if (!(signed_distance >= constraint.signed_distance))
-                    {
-                        u += (constraint.signed_distance - signed_distance) * direction;
-                        clipped = true;
-                        any_change = true;
-                    }
-                    break;
-                default: { UNREACHABLE(); } break;
+                Scalar const epsilon{ epsilon_around<double>(signed_distance) };
+                switch (constraint.comparator)
+                {
+                    case Comparator::LESS:
+                        if (!(signed_distance < constraint.signed_distance))
+                        {
+                            u += ((constraint.signed_distance - epsilon) - signed_distance) * direction;
+                            clipped = true;
+                            any_change = true;
+                        }
+                        break;
+                    case Comparator::LESS_EQUAL:
+                        if (!(signed_distance <= constraint.signed_distance))
+                        {
+                            u += (constraint.signed_distance - signed_distance) * direction;
+                            clipped = true;
+                            any_change = true;
+                        }
+                        break;
+                    case Comparator::GREATER:
+                        if (!(signed_distance > constraint.signed_distance))
+                        {
+                            u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
+                            clipped = true;
+                            any_change = true;
+                        }
+                        break;
+                    case Comparator::GREATER_EQUAL:
+                        if (!(signed_distance >= constraint.signed_distance))
+                        {
+                            u += (constraint.signed_distance - signed_distance) * direction;
+                            clipped = true;
+                            any_change = true;
+                        }
+                        break;
+                    default: { UNREACHABLE(); } break;
+                }
             }
         }
+
+        Vector aim = u - old_u;
+        for (Constraint const& constraint : inequalities)
+        {
+            if (processed_constraints == max_processed_constraints)
+                return any_change;
+            ++processed_constraints;
+
+            Vector direction;
+            compute_direction(direction, constraint);
+
+            Scalar const signed_distance{ u.dot(constraint.normal) };
+            if (valid(signed_distance) && !(signed_distance < constraint.signed_distance))
+            {
+                Scalar const epsilon{ epsilon_around<double>(signed_distance) };
+                Scalar const sign = direction.dot(aim) < 0.0 ? -1.0 : 1.0;
+                u += ((constraint.signed_distance + sign * std::fabs(epsilon)) - signed_distance) * direction;
+                clipped = true;
+                any_change = true;
+            }
+        }
+
         if (!clipped)
             return any_change;
     }

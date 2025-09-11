@@ -256,7 +256,8 @@ private:
 
     Vector origin;
     Matrix matrix;
-    std::vector<Constraint> constraints;
+    std::vector<Constraint> orderings;
+    std::vector<Constraint> inequalities;
     Vector gradient;
 
     Statistics statistics;
