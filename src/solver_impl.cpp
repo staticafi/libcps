@@ -843,6 +843,7 @@ bool SolverImpl::are_constraints_satisfied(Vector const& u) const
 
 bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
 {
+    Vector orig_u = u;
     bool any_change{ false };
     for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
     {
@@ -858,15 +859,16 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             }
             Scalar const signed_distance{ u.dot(constraint.normal) };
             if (!valid(signed_distance))
-                return any_change;
+                continue;
 
             Scalar const epsilon{ epsilon_around<double>(signed_distance) };
             switch (constraint.comparator)
             {
                 case Comparator::UNEQUAL:
-                    if (!(constraint.signed_distance != signed_distance))
+                    if (std::fabs(signed_distance - constraint.signed_distance) < 1e-9)
                     {
-                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
+                        Scalar const sign = direction.dot(u - orig_u) < 0.0 ? -1.0 : 1.0;
+                        u += ((constraint.signed_distance + sign * std::fabs(epsilon)) - signed_distance) * direction;
                         clipped = true;
                         any_change = true;
                     }
