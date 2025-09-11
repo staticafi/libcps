@@ -232,7 +232,6 @@ private:
         Scalar sign = 1.0,
         Scalar const* function_value = nullptr
         ) const;
-    bool are_constraints_satisfied(Vector const& u) const;
     bool clip_by_constraints(Vector& u, std::size_t const max_iterations) const;
     bool is_matrix_feasible();
 

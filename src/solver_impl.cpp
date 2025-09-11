@@ -807,38 +807,6 @@ void SolverImpl::epsilon_steps_along_ray(
 }
 
 
-bool SolverImpl::are_constraints_satisfied(Vector const& u) const
-{
-    for (Constraint const& constraint : constraints)
-    {
-        Scalar const signed_distance{ u.dot(constraint.normal) };
-        switch (constraint.comparator)
-        {
-            case Comparator::UNEQUAL:
-                if (!(signed_distance != constraint.signed_distance))
-                    return false;
-                break;
-            case Comparator::LESS:
-                if (!(signed_distance < constraint.signed_distance))
-                    return false;
-                break;
-            case Comparator::LESS_EQUAL:
-                if (!(signed_distance <= constraint.signed_distance))
-                    return false;
-                break;
-            case Comparator::GREATER:
-                if (!(signed_distance > constraint.signed_distance))
-                    return false;
-                break;
-            case Comparator::GREATER_EQUAL:
-                if (!(signed_distance >= constraint.signed_distance))
-                    return false;
-                break;
-            default: { UNREACHABLE(); } break;
-        }
-    }
-    return true;
-}
 
 
 bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations) const
