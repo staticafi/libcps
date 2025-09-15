@@ -845,6 +845,13 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
 {
     Vector orig_u = u;
     bool any_change{ false };
+    std::vector<Scalar>  steps;
+    auto const& get_epsilon = [this, &steps](Vector const& dir, Scalar const shift, Scalar const sign) {
+        steps.clear();
+        Vector u{ matrix * dir };
+        epsilon_steps_along_ray(steps, origin + shift * u, u, sign);
+        return steps.front();
+    };
     for (std::size_t iteration{ 0ULL }; iteration != max_iterations; ++iteration)
     {
         bool  clipped{ false };
@@ -861,13 +868,14 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
             if (!valid(signed_distance))
                 continue;
 
-            Scalar const epsilon{ epsilon_around<double>(signed_distance) };
+            Scalar const epsilon_xxx{ epsilon_around<double>(signed_distance) };
             switch (constraint.comparator)
             {
                 case Comparator::UNEQUAL:
                     if (std::fabs(signed_distance - constraint.signed_distance) < 1e-9)
                     {
                         Scalar const sign = direction.dot(u - orig_u) < 0.0 ? -1.0 : 1.0;
+                        Scalar const epsilon{ get_epsilon(direction, signed_distance - constraint.signed_distance, sign) };
                         u += ((constraint.signed_distance + sign * std::fabs(epsilon)) - signed_distance) * direction;
                         clipped = true;
                         any_change = true;
@@ -876,7 +884,8 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                 case Comparator::LESS:
                     if (!(signed_distance < constraint.signed_distance))
                     {
-                        u += ((constraint.signed_distance - epsilon) - signed_distance) * direction;
+                        Scalar const epsilon{ get_epsilon(direction, signed_distance - constraint.signed_distance, -1.0) };
+                        u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
                         clipped = true;
                         any_change = true;
                     }
@@ -892,6 +901,7 @@ bool SolverImpl::clip_by_constraints(Vector& u, std::size_t const max_iterations
                 case Comparator::GREATER:
                     if (!(signed_distance > constraint.signed_distance))
                     {
+                        Scalar const epsilon{ get_epsilon(direction, signed_distance - constraint.signed_distance, 1.0) };
                         u += ((constraint.signed_distance + epsilon) - signed_distance) * direction;
                         clipped = true;
                         any_change = true;
