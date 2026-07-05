@@ -85,8 +85,10 @@ bool solve(
     best_output = solver.best_output();
 
     if (statistics != nullptr)
+    {
         *statistics = solver.get_statistics();
-    statistics->insert({ "CACHE_HITS", cache.hits() });
+        statistics->insert({ "CACHE_HITS", cache.hits() });
+    }
 
     return solver.success();
 }
