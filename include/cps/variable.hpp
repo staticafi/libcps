@@ -1,6 +1,7 @@
 #ifndef CPS_VARIABLE_HPP_INCLUDED
 #   define CPS_VARIABLE_HPP_INCLUDED
 
+#   include <type_traits>
 #   include <cstdint>
 
 namespace cps {
@@ -44,6 +45,7 @@ struct Variable
     template<typename Visitor> void visit(Visitor visitor) const;
 
     template<typename T> inline void write_value_to(T&& x) const { visit([&x](auto const v) { x = (T)v; }); }
+    void write_value_to_address(void* addr) const { visit([addr](auto const v) { *(std::remove_cv_t<decltype(v)>*)addr = v; }); }
 
     Type type;
     Value value;
