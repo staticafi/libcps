@@ -104,6 +104,8 @@ void Variable::visit(Visitor visitor) const
 
 
 bool operator==(Variable const& lhs, Variable const& rhs);
+inline bool operator!=(Variable const& lhs, Variable const& rhs) { return !(lhs == rhs); }
+bool operator<(Variable const& lhs, Variable const& rhs);
 struct VariableHasher { std::size_t operator()(Variable const& var) const; };
 
 
